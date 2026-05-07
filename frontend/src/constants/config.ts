@@ -1,4 +1,4 @@
-export const APP_NAME = "MediRef";
+export const APP_NAME = (process.env as any).EXPO_PUBLIC_APP_NAME || "MediRef";
 export const API_BASE_URL = (process.env as any).EXPO_PUBLIC_API_URL || "http://localhost:5000";
 export const SALT = "MEDIREF_SECURE_V1_2024";
 export const THEME_COLOR = "#0F9B8E";

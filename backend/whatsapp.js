@@ -1,7 +1,7 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const Referral = require('./models/Referral');
-const APP_NAME = "MediRef";
+const APP_NAME = process.env.APP_NAME || "MediRef";
 
 let isClientReady = false;
 

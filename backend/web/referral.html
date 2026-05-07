@@ -3,113 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediRef — Specialist Referral View</title>
+    <title>MediRef — Secure Specialist Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
             --primary: #0F9B8E;
-            --bg: #F5F7F9;
+            --primary-light: #34E0D0;
+            --bg: #0A0F12;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
         }
+
+        * {
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Outfit', sans-serif;
             background-color: var(--bg);
+            color: #E0E6ED;
             margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background Blobs */
+        .blob {
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+            filter: blur(80px);
+            opacity: 0.15;
+            z-index: -1;
+            border-radius: 50%;
+            animation: move 20s infinite alternate;
+        }
+        .blob-1 { top: -100px; left: -100px; }
+        .blob-2 { bottom: -100px; right: -100px; background: radial-gradient(circle, var(--primary-light) 0%, transparent 70%); }
+        
+        @keyframes move {
+            from { transform: translate(0, 0) scale(1); }
+            to { transform: translate(100px, 50px) scale(1.2); }
+        }
+
+        .container {
+            max-width: 700px;
+            width: 95%;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        header {
+            margin-bottom: 40px;
+        }
+
+        .logo-tag {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: var(--primary-light);
+            font-weight: 800;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        h1 {
+            font-size: 36px;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, #fff, #999);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-container {
             display: flex;
             flex-direction: column;
             align-items: center;
+            margin: 40px 0;
         }
-        header {
-            width: 100%;
-            background-color: var(--primary);
-            color: white;
-            padding: 20px;
-            text-align: center;
-            font-size: 24px;
-            font-weight: bold;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .container {
-            max-width: 600px;
-            width: 90%;
-            margin-top: 40px;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            text-align: center;
-        }
+
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary);
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(15, 155, 142, 0.1);
+            border-top: 3px solid var(--primary-light);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
+            animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            margin-bottom: 20px;
         }
+
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .card {
-            text-align: left;
-            display: none;
-        }
-        .field {
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        .label {
-            font-weight: bold;
-            color: var(--primary);
-            font-size: 14px;
-            text-transform: uppercase;
-        }
-        .value {
+
+        .status-text {
+            color: #A0AEC0;
             font-size: 16px;
-            color: #333;
-            margin-top: 5px;
+            max-width: 300px;
+            line-height: 1.6;
         }
-        #status-msg {
-            color: #666;
+
+        .referral-card {
+            display: none;
+            text-align: left;
+            animation: slideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .section-header h2 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 600;
+            margin-left: 12px;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .field-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            padding: 20px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .field-box:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--primary-light);
+        }
+
+        .field-label {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--primary-light);
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .field-label i {
+            margin-right: 8px;
+            width: 14px;
+        }
+
+        .field-value {
+            font-size: 17px;
+            line-height: 1.6;
+            color: #F7FAFC;
+        }
+
+        .error-view {
+            display: none;
+            color: #F56565;
+        }
+
+        .error-icon {
+            font-size: 48px;
             margin-bottom: 20px;
-        }
-        .denied {
-            color: #D32F2F;
-            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-<header id="header-name">MediRef</header>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
 
 <div class="container">
-    <div id="waiting-view">
-        <h2 id="app-heading">MediRef — Waiting for patient consent...</h2>
+    <header>
+        <span class="logo-tag">Secure Portal</span>
+        <h1 id="app-name">MediRef</h1>
+    </header>
+
+    <div id="waiting-view" class="status-container">
         <div class="spinner"></div>
-        <p id="status-msg">A WhatsApp message has been sent to the patient. This page will update automatically.</p>
+        <p class="status-text">Verifying security keys and waiting for patient consent via WhatsApp...</p>
     </div>
 
-    <div id="data-view" class="card">
-        <h2 style="color: var(--primary); margin-top: 0;">Referral Summary</h2>
-        <div id="clinical-data">
-            <!-- Data populated here -->
+    <div id="data-view" class="referral-card">
+        <div class="section-header">
+            <i data-lucide="shield-check" style="color: var(--primary-light)"></i>
+            <h2>Clinical Referral Summary</h2>
+        </div>
+        <div id="clinical-data" class="data-grid">
+            <!-- Populated by JS -->
         </div>
     </div>
 
-    <div id="error-view" class="card" style="text-align: center;">
-        <h2 class="denied">Access Denied</h2>
-        <p>The patient did not consent to sharing this referral.</p>
+    <div id="error-view" class="error-view">
+        <i data-lucide="alert-triangle" class="error-icon"></i>
+        <h2>Access Denied</h2>
+        <p>The patient has declined this referral request or the link has expired.</p>
     </div>
 </div>
 
 <script>
-    const APP_NAME = "MediRef";
-    const SALT = "MEDIREF_SECURE_V1_2024"; // Must match backend/config.ts
+    const SALT = "MEDIREF_SECURE_V1_2024";
     const docId = window.location.pathname.split('/').pop();
     
-    document.getElementById('header-name').innerText = APP_NAME;
-    document.getElementById('app-heading').innerText = `${APP_NAME} — Waiting for patient consent...`;
+    // Initialize Lucide icons
+    lucide.createIcons();
 
     async function triggerConsent() {
         try {
@@ -124,10 +256,10 @@
 
             if (status.consentStatus === 'approved') {
                 fetchData();
-                return true; // Stop polling
+                return true; 
             } else if (status.consentStatus === 'denied' || status.invalidated) {
                 showView('error-view');
-                return true; // Stop polling
+                return true;
             }
         } catch (e) { console.log("Poll failed", e); }
         return false;
@@ -139,9 +271,21 @@
             const data = await res.json();
 
             if (data.encryptedPayload) {
-                const key = data.gpId + "_" + SALT;
-                const bytes = CryptoJS.AES.decrypt(data.encryptedPayload, key);
-                const decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+                // ZERO KNOWLEDGE DECRYPTION: Read the key from the URL fragment
+                const unlockKey = window.location.hash.substring(1);
+                
+                if (!unlockKey) {
+                    throw new Error("No unlock key found in URL fragment.");
+                }
+
+                const bytes = CryptoJS.AES.decrypt(data.encryptedPayload, unlockKey);
+                const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+                
+                if (!decryptedText) {
+                    throw new Error("Decryption failed. Invalid key or corrupted data.");
+                }
+
+                const decryptedData = JSON.parse(decryptedText);
 
                 displayData(decryptedData, data.specialty);
                 showView('data-view');
@@ -154,24 +298,40 @@
 
     function displayData(data, specialty) {
         const container = document.getElementById('clinical-data');
-        container.innerHTML = `
-            <div class="field"><div class="label">Target Specialty</div><div class="value">${specialty}</div></div>
-            <div class="field"><div class="label">Reason for Referral</div><div class="value">${data.reason}</div></div>
-            <div class="field"><div class="label">Medical History</div><div class="value">${data.history}</div></div>
-            <div class="field"><div class="label">Current Medications</div><div class="value">${data.medications}</div></div>
-            <div class="field"><div class="label">Urgency / Red Flags</div><div class="value">${data.urgency || 'None'}</div></div>
-            ${data.allergies ? `<div class="field"><div class="label">Allergies</div><div class="value">${data.allergies}</div></div>` : ''}
-        `;
+        const fields = [
+            { icon: 'stethoscope', label: 'Target Specialty', value: specialty },
+            { icon: 'clipboard-list', label: 'Reason for Referral', value: data.reason },
+            { icon: 'history', label: 'Medical History', value: data.history },
+            { icon: 'pill', label: 'Current Medications', value: data.medications },
+            { icon: 'alert-circle', label: 'Urgency / Red Flags', value: data.urgency || 'Normal Priority' },
+            { icon: 'thermometer-snowflake', label: 'Known Allergies', value: data.allergies || 'None Reported' }
+        ];
+
+        container.innerHTML = fields.map(f => `
+            <div class="field-box">
+                <div class="field-label">
+                    <i data-lucide="${f.icon}"></i>
+                    ${f.label}
+                </div>
+                <div class="field-value">${f.value}</div>
+            </div>
+        `).join('');
+        
+        lucide.createIcons();
     }
 
     function showView(id) {
         document.getElementById('waiting-view').style.display = 'none';
         document.getElementById('data-view').style.display = 'none';
         document.getElementById('error-view').style.display = 'none';
-        document.getElementById(id).style.display = 'block';
+        document.getElementById(id).style.display = id === 'data-view' ? 'block' : 'flex';
+        
+        if (id === 'error-view') {
+            document.querySelector('.container').style.borderColor = '#F56565';
+        }
     }
 
-    // Initialize
+    // Start
     triggerConsent();
     const interval = setInterval(async () => {
         const stop = await checkStatus();

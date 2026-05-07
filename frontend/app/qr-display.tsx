@@ -1,63 +1,164 @@
-import React, { useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Share, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import React from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Share, SafeAreaView, Platform } from 'react-native';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
-import { API_BASE_URL, THEME_COLOR } from '../src/constants/config';
+import Animated, { FadeIn, ZoomIn, useAnimatedStyle, withRepeat, withTiming, withSequence } from 'react-native-reanimated';
+import { THEME_COLOR, APP_NAME, API_BASE_URL } from '../src/constants/config';
+import { GlassCard } from '../src/components/GlassCard';
+import { AnimatedBackground } from '../src/components/AnimatedBackground';
+import { ParallaxWrapper } from '../src/components/ParallaxWrapper';
+import { GlobalWebStyles, RandomFadeText, HandDrawnCircle, useRevealOnScroll } from '../src/components/SharedUI';
 
 export default function QRDisplayScreen() {
-  const { docId, specialty } = useLocalSearchParams();
+  const { docId, specialty, unlockKey } = useLocalSearchParams();
   const router = useRouter();
-  const qrRef = useRef<any>();
+  useRevealOnScroll();
 
-  const referralUrl = `${API_BASE_URL}/referral/${docId}`;
-  const date = new Date().toLocaleDateString();
+  // Specialist View URL - Zero Knowledge implementation (key in fragment)
+  const specialistUrl = `${API_BASE_URL}/referral/${docId}#${unlockKey}`;
 
   const handleShare = async () => {
     try {
-      // For simplicity, we share the link. 
-      // To share as image, we'd need to convert the SVG to base64, 
-      // but simple URL sharing is most reliable in RN without extra heavy libs.
       await Share.share({
-        message: `MediRef Referral for ${specialty}. Link: ${referralUrl}`,
-        url: referralUrl,
+        message: `MediRef Secure Referral for ${specialty}: ${specialistUrl}`,
+        url: specialistUrl,
       });
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
+    } catch (error) {
+      console.error(error);
     }
   };
 
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: withRepeat(
+          withSequence(
+            withTiming(1.02, { duration: 1500 }),
+            withTiming(1, { duration: 1500 })
+          ),
+          -1,
+          true
+        ),
+      },
+    ],
+  }));
+
+  if (Platform.OS === 'web') {
+    return (
+      <div className="app-container">
+        <Stack.Screen options={{ headerShown: false }} />
+        <GlobalWebStyles />
+        
+        <header className="global-header fade-in">
+          <div style={{ fontFamily: "'Space Mono', monospace", fontWeight: 'bold', letterSpacing: '0.2em', cursor: 'pointer' }} onClick={() => router.replace('/dashboard')}>
+            ✕ CLOSE
+          </div>
+          <div style={{ fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em' }}>SECURE TRANSFER</div>
+        </header>
+
+        <div className="grid-layout reveal-on-scroll">
+          <div className="grid-col reveal-block" style={{ transitionDelay: '0s', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <h1 className="font-serif" style={{ fontSize: '64px', margin: '0 0 20px', lineHeight: '1.1' }}>
+              <RandomFadeText text="Scan to" baseDelay={0} />
+              <br />
+              <HandDrawnCircle delay={1.5}>
+                <RandomFadeText text="Decrypt" baseDelay={0.5} />
+              </HandDrawnCircle>
+            </h1>
+            <p className="font-sans" style={{ color: '#666', fontSize: '16px', lineHeight: '1.6', marginBottom: '40px' }}>
+              The QR code contains the secure URL and the exact decryption key embedded in the URL fragment. 
+              The specialist scans this directly. The key never touches the server.
+            </p>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em', marginBottom: '8px' }}>SPECIALTY</div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{specialty}</div>
+            </div>
+
+            <div style={{ marginBottom: '40px' }}>
+              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em', marginBottom: '8px' }}>BLOB ID</div>
+              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '14px', color: '#666' }}>{docId}</div>
+            </div>
+
+            <button 
+              className="editorial-btn outline" 
+              onClick={handleShare} 
+              style={{ marginBottom: '16px' }}
+            >
+              COPY SECURE LINK
+            </button>
+            <button 
+              className="editorial-btn" 
+              onClick={() => router.replace('/dashboard')} 
+            >
+              RETURN TO DASHBOARD
+            </button>
+          </div>
+
+          <div className="grid-col reveal-block" style={{ transitionDelay: '0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: 'none' }}>
+            <div style={{ padding: '40px', background: 'white', border: '1px solid var(--border)', boxShadow: '8px 8px 0px rgba(61, 112, 104, 0.1)' }}>
+              <QRCode
+                value={specialistUrl}
+                size={300}
+                color="var(--fg)"
+                backgroundColor="transparent"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <View style={styles.qrCard}>
-        <Text style={styles.summaryTitle}>{specialty} Referral</Text>
-        <Text style={styles.summaryDate}>Generated on: {date}</Text>
-
-        <View style={styles.qrContainer}>
-          <QRCode
-            value={referralUrl}
-            size={220}
-            color={THEME_COLOR}
-            backgroundColor="white"
-            getRef={(c) => (qrRef.current = c)}
-          />
+      <AnimatedBackground />
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.replace('/dashboard')} style={styles.backBtn}>
+            <Text style={styles.backText}>✕</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Secure QR</Text>
         </View>
 
-        <Text style={styles.instructionHead}>Patient Instructions:</Text>
-        <Text style={styles.instructionBody}>
-          Ask the patient to carry this card to their specialist appointment.
-          The specialist will scan this QR to securely decrypt the clinical notes.
-        </Text>
-      </View>
+        <View style={styles.content}>
+          <ParallaxWrapper>
+            <Animated.View entering={ZoomIn.duration(800)} style={pulseStyle}>
+              <GlassCard style={styles.qrCard}>
+                <View style={styles.qrWrapper}>
+                  <QRCode
+                    value={specialistUrl}
+                    size={240}
+                    color={THEME_COLOR}
+                    backgroundColor="transparent"
+                  />
+                </View>
+                <Text style={styles.qrHint}>Specialist scans this to view</Text>
+              </GlassCard>
+            </Animated.View>
+          </ParallaxWrapper>
 
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
-          <Text style={styles.shareBtnText}>Share / Print QR</Text>
-        </TouchableOpacity>
+          <Animated.View entering={FadeIn.delay(600)} style={styles.infoSection}>
+            <Text style={styles.specialtyLabel}>{specialty} Referral</Text>
+            <Text style={styles.docIdLabel}>ID: {docId}</Text>
+            
+            <View style={styles.statusBox}>
+              <View style={styles.pulseDot} />
+              <Text style={styles.statusText}>Waiting for specialist scan...</Text>
+            </View>
+          </Animated.View>
 
-        <TouchableOpacity style={styles.homeBtn} onPress={() => router.replace('/dashboard')}>
-          <Text style={styles.homeBtnText}>Back to Dashboard</Text>
-        </TouchableOpacity>
-      </View>
+          <Animated.View entering={FadeIn.delay(800)} style={styles.actions}>
+            <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
+              <Text style={styles.shareBtnText}>Share Secure Link</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.doneBtn} onPress={() => router.replace('/dashboard')}>
+              <Text style={styles.doneBtnText}>Back to Dashboard</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
@@ -65,78 +166,113 @@ export default function QRDisplayScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7F9',
-    padding: 20,
+    backgroundColor: '#fff',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.05)',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  backText: {
+    fontSize: 20,
+    color: '#666',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1A1A1A',
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 30,
   },
   qrCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
     padding: 30,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 5,
+    backgroundColor: '#fff',
   },
-  summaryTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  summaryDate: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 30,
-  },
-  qrContainer: {
-    padding: 15,
-    borderWidth: 2,
-    borderColor: '#F0F0F0',
+  qrWrapper: {
+    padding: 10,
+    backgroundColor: '#fff',
     borderRadius: 15,
-    marginBottom: 30,
   },
-  instructionHead: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-    alignSelf: 'flex-start',
-    marginBottom: 8,
-  },
-  instructionBody: {
+  qrHint: {
+    marginTop: 20,
     fontSize: 14,
-    lineHeight: 20,
-    color: '#666',
-    textAlign: 'left',
+    color: '#888',
+    fontWeight: '600',
   },
-  actionRow: {
-    marginTop: 30,
+  infoSection: {
+    alignItems: 'center',
+    marginTop: 40,
+  },
+  specialtyLabel: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1A1A1A',
+  },
+  docIdLabel: {
+    fontSize: 12,
+    color: '#AAA',
+    marginTop: 5,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  statusBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 155, 142, 0.1)',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 20,
+  },
+  pulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: THEME_COLOR,
+    marginRight: 8,
+  },
+  statusText: {
+    fontSize: 13,
+    color: THEME_COLOR,
+    fontWeight: '700',
+  },
+  actions: {
+    width: '100%',
+    marginTop: 50,
   },
   shareBtn: {
     backgroundColor: THEME_COLOR,
-    padding: 16,
-    borderRadius: 12,
+    padding: 18,
+    borderRadius: 15,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 15,
   },
   shareBtnText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
   },
-  homeBtn: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
+  doneBtn: {
+    padding: 15,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
   },
-  homeBtnText: {
+  doneBtnText: {
     color: '#666',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
 });
