@@ -36,50 +36,63 @@ client.on('authenticated', () => {
  * Replaces the Twilio Webhook
  */
 client.on('message', async (msg) => {
-    const body = msg.body.trim().toUpperCase();
-    const patientPhone = msg.from.split('@')[0]; // Typically '917587808781'
+    // Extensive logging for debugging
+    const rawBody = msg.body || "";
+    const body = rawBody.trim().toUpperCase();
+    const from = msg.from; // Typically '917411237522@c.us'
+    const patientPhone = from.split('@')[0];
 
-    console.log(`[MediRef] Received WhatsApp message from ${patientPhone}: "${body}"`);
+    console.log(`[MediRef] RECEIVED: Message from ${from}: "${rawBody}"`);
 
-    if (body === 'YES' || body === 'NO') {
+    // Check if it's a consent-related keyword
+    const isYes = body.includes('YES') || body.includes('APPROVE') || body === 'Y';
+    const isNo = body.includes('NO') || body.includes('DECLINE') || body === 'N';
+
+    if (isYes || isNo) {
+        console.log(`[MediRef] CONSENT DETECTED: ${isYes ? 'YES' : 'NO'} from ${patientPhone}`);
         try {
-            // Find the most recent pending referral
-            // For testing, we'll try to match the phone number, 
-            // but if that fails, we'll take the most recent pending one globally 
-            // to ensure your test succeeds.
+            // Find the most recent pending referral for this number
+            // We use the last 10 digits to avoid country code mismatch issues
             const last10 = patientPhone.slice(-10);
+            console.log(`[MediRef] SEARCHING: Pending referrals matching phone segment "${last10}"...`);
+
             let referral = await Referral.findOne({ 
                 patientPhone: { $regex: last10 },
                 consentStatus: 'pending' 
             }).sort({ createdAt: -1 });
 
             if (!referral) {
-                console.log(`[MediRef] No specific match for ${last10}. Trying global most-recent pending...`);
+                console.warn(`[MediRef] WARNING: No specific pending referral found for ${last10}.`);
+                console.log(`[MediRef] FALLBACK: Searching for ANY most-recent pending referral...`);
                 referral = await Referral.findOne({ consentStatus: 'pending' }).sort({ createdAt: -1 });
             }
 
             if (!referral) {
-                console.log(`[MediRef] No pending referrals found at all.`);
+                console.error(`[MediRef] ERROR: No pending referrals found in database at all. Consent cannot be processed.`);
                 return;
             }
 
-            console.log(`[MediRef] Found referral ${referral.docId}. Updating status to: ${body}`);
+            console.log(`[MediRef] MATCH FOUND: Referral ${referral.docId} for ${referral.patientPhone}`);
 
-            if (body === 'YES') {
+            if (isYes) {
                 referral.consentStatus = 'approved';
                 referral.consentTimestamp = new Date();
                 await referral.save();
+                console.log(`[MediRef] STATUS UPDATED: Referral ${referral.docId} is now APPROVED`);
                 await sendApprovalConfirmation(patientPhone);
-            } else if (body === 'NO') {
+            } else {
                 referral.consentStatus = 'denied';
                 referral.invalidated = true;
                 referral.consentTimestamp = new Date();
                 await referral.save();
+                console.log(`[MediRef] STATUS UPDATED: Referral ${referral.docId} is now DENIED`);
                 await sendDenialConfirmation(patientPhone);
             }
         } catch (error) {
-            console.error(`[MediRef] Message handling error:`, error.message);
+            console.error(`[MediRef] CRITICAL: Error updating referral status:`, error.message);
         }
+    } else {
+        console.log(`[MediRef] IGNORED: Message does not contain YES/NO keywords.`);
     }
 });
 

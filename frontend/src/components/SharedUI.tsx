@@ -167,9 +167,9 @@ export const GlobalWebStyles = () => {
       }
       .is-revealed .drawn-circle-path,
       .drawn-circle-path.active {
-        stroke-dashoffset: 0 !important;
-        opacity: 1 !important;
-        transition: stroke-dashoffset 1.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.1s !important;
+        stroke-dashoffset: 0;
+        opacity: 1;
+        transition: stroke-dashoffset 1.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
       }
       
       @media (max-width: 768px) {
@@ -282,8 +282,9 @@ export const HandDrawnCircle = ({ children, delay = 1.0, active = false }: { chi
             style={{ 
               transitionDelay: `${delay}s`,
               strokeDasharray: circumference,
-              strokeDashoffset: circumference,
-              transition: 'stroke-dashoffset 1.5s cubic-bezier(0.16, 1, 0.3, 1)'
+              strokeDashoffset: active ? 0 : circumference,
+              opacity: active ? 1 : 0,
+              transition: 'stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease-in-out'
             }}
           />
         </svg>

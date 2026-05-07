@@ -268,6 +268,9 @@
     async function fetchData() {
         try {
             const res = await fetch(`/api/referral/${docId}/data`);
+            if (!res.ok) {
+                throw new Error("Access denied or referral invalidated.");
+            }
             const data = await res.json();
 
             if (data.encryptedPayload) {
@@ -286,26 +289,38 @@
                 }
 
                 const decryptedData = JSON.parse(decryptedText);
-
                 displayData(decryptedData, data.specialty);
                 showView('data-view');
             }
         } catch (e) {
-            console.error("Decryption failed", e);
+            console.error("Fetch or Decryption failed", e);
             showView('error-view');
         }
     }
 
     function displayData(data, specialty) {
         const container = document.getElementById('clinical-data');
-        const fields = [
-            { icon: 'stethoscope', label: 'Target Specialty', value: specialty },
-            { icon: 'clipboard-list', label: 'Reason for Referral', value: data.reason },
-            { icon: 'history', label: 'Medical History', value: data.history },
-            { icon: 'pill', label: 'Current Medications', value: data.medications },
-            { icon: 'alert-circle', label: 'Urgency / Red Flags', value: data.urgency || 'Normal Priority' },
-            { icon: 'thermometer-snowflake', label: 'Known Allergies', value: data.allergies || 'None Reported' }
+        
+        let fields = [
+            { icon: 'stethoscope', label: 'Specialty Context', value: specialty }
         ];
+
+        if (data.bloodChecks && data.bloodChecks.length > 0) {
+            fields.push({ 
+                icon: 'test-tube-2', 
+                label: 'Required Blood Tests', 
+                value: `<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                    ${data.bloodChecks.map(t => `<span style="background: rgba(15, 155, 142, 0.15); color: var(--primary-light); padding: 4px 12px; border-radius: 99px; font-size: 13px;">${t}</span>`).join('')}
+                </div>` 
+            });
+        }
+
+        fields.push({ icon: 'clipboard-list', label: 'Reason / Notes', value: data.reason || 'No clinical notes provided.' });
+        
+        if (data.urgency) fields.push({ icon: 'alert-circle', label: 'Urgency Level', value: data.urgency });
+        if (data.history) fields.push({ icon: 'history', label: 'Medical History', value: data.history });
+        if (data.medications) fields.push({ icon: 'pill', label: 'Current Medications', value: data.medications });
+        if (data.allergies) fields.push({ icon: 'thermometer-snowflake', label: 'Known Allergies', value: data.allergies });
 
         container.innerHTML = fields.map(f => `
             <div class="field-box">

@@ -9,6 +9,27 @@ import { AnimatedBackground } from '../src/components/AnimatedBackground';
 import { ParallaxWrapper } from '../src/components/ParallaxWrapper';
 import { GlobalWebStyles, RandomFadeText, HandDrawnCircle, useRevealOnScroll } from '../src/components/SharedUI';
 
+const PrintStyles = () => (
+  <style>{`
+    @media print {
+      body { background: white !important; }
+      .app-container { display: none !important; }
+      .printable-ticket { 
+        display: flex !important; 
+        flex-direction: column; 
+        align-items: center; 
+        justify-content: center;
+        padding: 60px;
+        width: 100%;
+        height: 100vh;
+        visibility: visible !important;
+      }
+      .printable-ticket * { visibility: visible !important; }
+    }
+    .printable-ticket { display: none; }
+  `}</style>
+);
+
 export default function QRDisplayScreen() {
   const { docId, specialty, unlockKey } = useLocalSearchParams();
   const router = useRouter();
@@ -48,6 +69,29 @@ export default function QRDisplayScreen() {
       <div className="app-container">
         <Stack.Screen options={{ headerShown: false }} />
         <GlobalWebStyles />
+        <PrintStyles />
+        
+        <div className="printable-ticket">
+          <div style={{ fontSize: '32px', fontWeight: 'bold', fontFamily: "'Playfair Display', serif", marginBottom: '8px', color: 'black' }}>MEDIREF</div>
+          <div style={{ fontSize: '10px', fontFamily: "'Space Mono', monospace", letterSpacing: '0.2em', marginBottom: '40px', color: '#666' }}>SECURE CLINICAL TRANSFER PASS</div>
+          
+          <div style={{ padding: '30px', border: '1px solid black', marginBottom: '40px' }}>
+            <QRCode
+              value={specialistUrl}
+              size={350}
+              color="black"
+              backgroundColor="white"
+            />
+          </div>
+          
+          <div style={{ textAlign: 'center', color: 'black' }}>
+            <div style={{ fontSize: '12px', fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', marginBottom: '8px' }}>TARGET SPECIALTY</div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', textTransform: 'uppercase' }}>{specialty}</div>
+            <div style={{ fontSize: '10px', marginTop: '30px', maxWidth: '300px', lineHeight: '1.5', opacity: 0.8 }}>
+              This QR code contains a Zero-Knowledge decryption key. Scan with any smartphone camera to view encrypted clinical records locally.
+            </div>
+          </div>
+        </div>
         
         <header className="global-header fade-in">
           <div style={{ fontFamily: "'Space Mono', monospace", fontWeight: 'bold', letterSpacing: '0.2em', cursor: 'pointer' }} onClick={() => router.replace('/dashboard')}>
@@ -80,6 +124,13 @@ export default function QRDisplayScreen() {
               <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '14px', color: '#666' }}>{docId}</div>
             </div>
 
+            <button 
+              className="editorial-btn outline" 
+              onClick={() => window.print()} 
+              style={{ marginBottom: '16px' }}
+            >
+              PRINT SECURE PASS
+            </button>
             <button 
               className="editorial-btn outline" 
               onClick={handleShare} 

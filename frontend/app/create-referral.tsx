@@ -25,15 +25,43 @@ export default function ReferralFormScreen() {
     history: '',
     medications: '',
     allergies: '',
-    urgency: '',
+    urgency: 'Routine',
     specialty: 'Cardiology',
+    customSpecialty: '',
   });
+  const [mode, setMode] = useState<'referral' | 'blood_test'>('referral');
+  const [bloodChecks, setBloodChecks] = useState<string[]>([]);
+  
+  const URGENCY_LEVELS = ['Routine', 'High', 'Emergency', 'Critical'];
+  const BLOOD_TESTS = [
+    'CBC (Complete Blood Count)', 
+    'Lipid Profile (Cholesterol)', 
+    'HbA1c (Diabetes)', 
+    'Liver Function Test (LFT)', 
+    'Kidney Function Test (KFT)', 
+    'Thyroid Profile (T3, T4, TSH)', 
+    'Vitamin D & B12',
+    'Iron Profile (Ferritin)',
+    'Electrolytes (Na, K, Cl)',
+    'Blood Glucose (Fasting)',
+    'C-Reactive Protein (CRP)',
+    'ESR (Inflammation Marker)',
+    'Cardiac Markers (Troponin)',
+    'Coagulation (PT/INR)',
+    'Serum Uric Acid',
+    'Urine Analysis (Routine)'
+  ];
 
   const handleSubmit = async () => {
     console.log('[MediRef] Submit clicked. Form data:', form);
     
-    // Basic validation
-    const requiredFields = ['patientPhone', 'reason', 'history', 'medications', 'urgency', 'specialty'];
+    let requiredFields: string[] = [];
+    if (mode === 'referral') {
+      requiredFields = ['patientPhone', 'reason', 'urgency'];
+    } else {
+      requiredFields = ['patientPhone'];
+    }
+    
     for (const field of requiredFields) {
       if (!form[field as keyof typeof form]) {
         const msg = `Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`;
@@ -46,6 +74,16 @@ export default function ReferralFormScreen() {
         return;
       }
     }
+    if (mode === 'referral' && form.specialty === 'Other' && !form.customSpecialty.trim()) {
+      if (Platform.OS === 'web') window.alert('Missing Field: Please specify the custom specialty.');
+      else Alert.alert('Missing Field', 'Please specify the custom specialty.');
+      return;
+    }
+    if (mode === 'blood_test' && bloodChecks.length === 0) {
+      if (Platform.OS === 'web') window.alert('Missing Field: Please select at least one blood test.');
+      else Alert.alert('Missing Field', 'Please select at least one blood test.');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -54,18 +92,25 @@ export default function ReferralFormScreen() {
 
       const clinicalFields = {
         reason: form.reason,
-        history: form.history,
-        medications: form.medications,
-        allergies: form.allergies,
-        urgency: form.urgency,
+        ...(mode === 'referral' && {
+          history: form.history,
+          medications: form.medications,
+          allergies: form.allergies,
+          urgency: form.urgency,
+        }),
+        ...(mode === 'blood_test' && {
+          bloodChecks: bloodChecks,
+        })
       };
+
+      const finalSpecialty = mode === 'blood_test' ? 'Pathology / Blood Check' : (form.specialty === 'Other' ? form.customSpecialty : form.specialty);
 
       const { cipherText: encryptedPayload, unlockKey } = encryptClinicalFields(clinicalFields);
 
       const response = await api.post('/api/referral/create', {
         encryptedPayload,
         patientPhone: form.patientPhone,
-        specialty: form.specialty,
+        specialty: finalSpecialty,
         gpId: user.id,
       });
 
@@ -73,7 +118,7 @@ export default function ReferralFormScreen() {
 
       router.replace({
         pathname: '/qr-display',
-        params: { docId, specialty: form.specialty, unlockKey }
+        params: { docId, specialty: finalSpecialty, unlockKey }
       });
 
     } catch (error: any) {
@@ -99,22 +144,51 @@ export default function ReferralFormScreen() {
           <div style={{ fontFamily: "'Space Mono', monospace", fontWeight: 'bold', letterSpacing: '0.2em', cursor: 'pointer' }} onClick={() => router.back()}>
             ← RETURN
           </div>
-          <div style={{ fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em' }}>SECURE REFERRAL CREATION</div>
+          <div style={{ display: 'flex', gap: '32px' }}>
+            <button 
+              onClick={() => setMode('referral')}
+              style={{ 
+                background: 'transparent', border: 'none', fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', cursor: 'pointer', 
+                color: mode === 'referral' ? 'var(--primary)' : '#999', 
+                fontWeight: mode === 'referral' ? 'bold' : 'normal', 
+                padding: '10px 0',
+                transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                transform: mode === 'referral' ? 'scale(1.05) translateY(-2px)' : 'scale(1) translateY(0)'
+              }}
+            >
+              <HandDrawnCircle active={mode === 'referral'} delay={0}>REFERRAL</HandDrawnCircle>
+            </button>
+            <button 
+              onClick={() => setMode('blood_test')}
+              style={{ 
+                background: 'transparent', border: 'none', fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', cursor: 'pointer', 
+                color: mode === 'blood_test' ? 'var(--primary)' : '#999', 
+                fontWeight: mode === 'blood_test' ? 'bold' : 'normal', 
+                padding: '10px 0',
+                transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                transform: mode === 'blood_test' ? 'scale(1.05) translateY(-2px)' : 'scale(1) translateY(0)'
+              }}
+            >
+              <HandDrawnCircle active={mode === 'blood_test'} delay={0}>BLOOD CHECKUP</HandDrawnCircle>
+            </button>
+          </div>
         </header>
 
         <div className="grid-layout reveal-on-scroll">
-          <div className="grid-col reveal-block" style={{ transitionDelay: '0s' }}>
-            <h1 className="font-serif" style={{ fontSize: '64px', margin: '0 0 40px', lineHeight: '1.1' }}>
-              <RandomFadeText text="Create Secure" baseDelay={0} />
-              <br />
-              <HandDrawnCircle delay={1.5}>
-                <RandomFadeText text="Referral" baseDelay={0.5} />
-              </HandDrawnCircle>
-            </h1>
-            <p className="font-sans" style={{ color: '#666', fontSize: '16px', lineHeight: '1.6', marginBottom: '40px' }}>
-              All clinical data entered here is encrypted locally in your browser using AES-256-GCM. 
-              Only the destination specialist will receive the decryption key. The server never sees the plaintext.
-            </p>
+          {mode === 'referral' ? (
+            <>
+              <div className="grid-col reveal-block" style={{ transitionDelay: '0s' }}>
+                <h1 className="font-serif" style={{ fontSize: '64px', margin: '0 0 40px', lineHeight: '1.1' }}>
+                  <RandomFadeText text="Create Secure" baseDelay={0} />
+                  <br />
+                  <HandDrawnCircle delay={1.5}>
+                    <RandomFadeText text="Referral" baseDelay={0.5} />
+                  </HandDrawnCircle>
+                </h1>
+                <p className="font-sans" style={{ color: '#666', fontSize: '16px', lineHeight: '1.6', marginBottom: '40px' }}>
+                  All clinical data entered here is encrypted locally in your browser using AES-256-GCM. 
+                  Only the destination specialist will receive the decryption key. The server never sees the plaintext.
+                </p>
             
             <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>SPECIALTY</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '16px', marginBottom: '32px' }}>
@@ -138,6 +212,19 @@ export default function ReferralFormScreen() {
                 </button>
               ))}
             </div>
+            
+            {form.specialty === 'Other' && (
+              <div className="fade-in">
+                <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>SPECIFY SPECIALTY</label>
+                <input 
+                  className="editorial-input" 
+                  value={form.customSpecialty}
+                  onChange={(e) => setForm({ ...form, customSpecialty: e.target.value })}
+                  placeholder="e.g. Pediatric Oncology"
+                  style={{ marginTop: '16px' }}
+                />
+              </div>
+            )}
 
             <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>PATIENT PHONE (SMS NOTIFICATION)</label>
             <input 
@@ -149,13 +236,27 @@ export default function ReferralFormScreen() {
             />
             
             <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>URGENCY LEVEL</label>
-            <input 
-              className="editorial-input" 
-              value={form.urgency}
-              onChange={(e) => setForm({ ...form, urgency: e.target.value })}
-              placeholder="e.g. High, Routine, Requires immediate attention"
-              style={{ marginTop: '16px' }}
-            />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '16px', marginBottom: '32px' }}>
+              {URGENCY_LEVELS.map(level => (
+                <button
+                  key={level}
+                  onClick={() => setForm({ ...form, urgency: level })}
+                  style={{
+                    padding: '8px 16px',
+                    fontFamily: "'Space Mono', monospace",
+                    fontSize: '10px',
+                    background: form.urgency === level ? 'var(--fg)' : 'transparent',
+                    color: form.urgency === level ? 'var(--bg)' : 'var(--fg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '9999px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="grid-col reveal-block" style={{ transitionDelay: '0.2s' }}>
@@ -168,7 +269,7 @@ export default function ReferralFormScreen() {
               style={{ marginTop: '16px' }}
             />
 
-            <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>MEDICAL HISTORY</label>
+            <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>MEDICAL HISTORY (OPTIONAL)</label>
             <textarea 
               className="editorial-textarea" 
               value={form.history}
@@ -177,7 +278,7 @@ export default function ReferralFormScreen() {
               style={{ marginTop: '16px', minHeight: '80px' }}
             />
 
-            <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>CURRENT MEDICATIONS</label>
+            <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>CURRENT MEDICATIONS (OPTIONAL)</label>
             <textarea 
               className="editorial-textarea" 
               value={form.medications}
@@ -186,7 +287,7 @@ export default function ReferralFormScreen() {
               style={{ marginTop: '16px', minHeight: '80px' }}
             />
 
-            <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>ALLERGIES</label>
+            <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>ALLERGIES (OPTIONAL)</label>
             <input 
               className="editorial-input" 
               value={form.allergies}
@@ -195,15 +296,88 @@ export default function ReferralFormScreen() {
               style={{ marginTop: '16px' }}
             />
 
-            <button 
-              className="editorial-btn" 
-              onClick={handleSubmit} 
-              disabled={loading}
-              style={{ marginTop: '20px' }}
-            >
-              {loading ? 'ENCRYPTING & SUBMITTING...' : 'ENCRYPT & CREATE REFERRAL'}
-            </button>
-          </div>
+                <button 
+                  className="editorial-btn" 
+                  onClick={handleSubmit} 
+                  disabled={loading}
+                  style={{ marginTop: '20px' }}
+                >
+                  {loading ? 'ENCRYPTING & SUBMITTING...' : 'ENCRYPT & CREATE REFERRAL'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="grid-col reveal-block" style={{ transitionDelay: '0s' }}>
+                <h1 className="font-serif" style={{ fontSize: '64px', margin: '0 0 40px', lineHeight: '1.1' }}>
+                  <RandomFadeText text="Order Blood" baseDelay={0} />
+                  <br />
+                  <HandDrawnCircle delay={1.5}>
+                    <RandomFadeText text="Checkup" baseDelay={0.5} />
+                  </HandDrawnCircle>
+                </h1>
+                <p className="font-sans" style={{ color: '#666', fontSize: '16px', lineHeight: '1.6', marginBottom: '40px' }}>
+                  Select the required pathology tests. The encrypted request will be accessible only via the generated QR code.
+                </p>
+                
+                <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em', display: 'block', marginBottom: '16px' }}>SELECT REQUIRED TESTS</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '32px' }}>
+                  {BLOOD_TESTS.map(test => {
+                    const isSelected = bloodChecks.includes(test);
+                    return (
+                      <label key={test} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif", fontSize: '14px' }}>
+                        <div style={{
+                          width: '18px', height: '18px', border: '1px solid var(--primary)', 
+                          background: isSelected ? 'var(--primary)' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+                        }}>
+                          {isSelected && <span style={{ color: 'white', fontSize: '12px' }}>✓</span>}
+                        </div>
+                        <input 
+                          type="checkbox" 
+                          style={{ display: 'none' }}
+                          checked={isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) setBloodChecks([...bloodChecks, test]);
+                            else setBloodChecks(bloodChecks.filter(t => t !== test));
+                          }}
+                        />
+                        {test}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="grid-col reveal-block" style={{ transitionDelay: '0.2s' }}>
+                <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>PATIENT PHONE (SMS NOTIFICATION)</label>
+                <input 
+                  className="editorial-input" 
+                  value={form.patientPhone}
+                  onChange={(e) => setForm({ ...form, patientPhone: e.target.value })}
+                  placeholder="+91"
+                  style={{ marginTop: '16px', marginBottom: '32px' }}
+                />
+
+                <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>CLINICAL REASONING (OPTIONAL)</label>
+                <textarea 
+                  className="editorial-textarea" 
+                  value={form.reason}
+                  onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                  placeholder="Why are these tests required?..."
+                  style={{ marginTop: '16px', minHeight: '120px' }}
+                />
+
+                <button 
+                  className="editorial-btn" 
+                  onClick={handleSubmit} 
+                  disabled={loading}
+                  style={{ marginTop: '40px' }}
+                >
+                  {loading ? 'ENCRYPTING & SUBMITTING...' : 'ENCRYPT & ORDER TESTS'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
