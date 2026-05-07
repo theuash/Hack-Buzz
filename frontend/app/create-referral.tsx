@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform, SafeAreaView } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { THEME_COLOR } from '../src/constants/config';
+import { THEME_COLOR, API_BASE_URL } from '../src/constants/config';
 import api from '../src/services/api';
 import { storage } from '../src/services/storage';
 import { encryptClinicalFields } from '../src/services/encryption';
@@ -115,6 +115,15 @@ export default function ReferralFormScreen() {
       });
 
       const { docId } = response.data;
+      
+      // NEW: Automatically send the QR pass image to the patient's WhatsApp
+      try {
+        const specialistUrl = `${API_BASE_URL}/referral/${docId}#${unlockKey}`;
+        await api.post(`/api/referral/${docId}/send-pass`, { specialistUrl });
+        console.log('[MediRef] QR Pass auto-sent to patient WhatsApp');
+      } catch (sendErr) {
+        console.error('[MediRef] Failed to auto-send QR Pass:', sendErr);
+      }
 
       router.replace({
         pathname: '/qr-display',

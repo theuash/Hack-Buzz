@@ -180,10 +180,11 @@ const WebStyles = () => {
 
       .nav-logo {
         font-family: 'Playfair Display', serif;
-        font-size: 20px;
+        font-size: 32px;
+        font-weight: 800;
         display: flex;
         align-items: center;
-        gap: 12px;
+        letter-spacing: -0.02em;
       }
       .nav-bar-line { height: 1px; background: var(--fg); }
       .nav-link {
@@ -760,9 +761,7 @@ export default function LandingPage() {
 
       <nav className={`nav-bar fade-nav ${scrolled ? 'scrolled' : ''}`}>
         <div className="nav-logo">
-          <div className="nav-bar-line" style={{ width: '24px' }} />
-          <span>SUPERDESIGN</span>
-          <div className="nav-bar-line" style={{ width: '32px' }} />
+          <span>MediRef</span>
         </div>
         <div style={{ display: 'flex', gap: '24px' }}>
           <a href="#architecture" className="nav-link">Architecture</a>

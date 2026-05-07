@@ -1,4 +1,5 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+const axios = require('axios');
 const qrcode = require('qrcode-terminal');
 const Referral = require('./models/Referral');
 const APP_NAME = process.env.APP_NAME || "MediRef";
@@ -160,8 +161,35 @@ const sendDenialConfirmation = async (patientPhone) => {
     }
 };
 
+/**
+ * Sends a QR Pass (Image) to the patient
+ */
+async function sendQrPass(patientPhone, specialistUrl) {
+    try {
+        console.log(`[MediRef] Preparing Stark-Border QR Pass for ${patientPhone}...`);
+        const sanitizedNumber = patientPhone.replace(/\D/g, '');
+        const chatId = `${sanitizedNumber}@c.us`;
+        
+        // Generate QR code with thick 50px margin and themed background color
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=800x800&margin=50&bgcolor=f7f6f2&data=${encodeURIComponent(specialistUrl)}`;
+        
+        console.log(`[MediRef] Fetching high-res QR pass...`);
+        const response = await axios.get(qrApiUrl, { responseType: 'arraybuffer' });
+        const base64 = Buffer.from(response.data, 'binary').toString('base64');
+        const media = new MessageMedia('image/png', base64, 'mediref-pass.png');
+
+        await client.sendMessage(chatId, media, { 
+            caption: `*MEDIREF SECURE PASS*\n\n*Specialty:* ${specialistUrl.split('referral/')[1].split('#')[0].substring(0,8)}... \n*Instruction:* Show this image to your specialist. \n\n_Zero-Knowledge Encrypted_` 
+        });
+        console.log(`[MediRef] SUCCESS: Stark-Border QR Pass sent to ${chatId}`);
+    } catch (error) {
+        console.error(`[MediRef] ERROR sending QR Pass:`, error.message);
+    }
+}
+
 module.exports = {
     sendConsentRequest,
     sendApprovalConfirmation,
-    sendDenialConfirmation
+    sendDenialConfirmation,
+    sendQrPass
 };

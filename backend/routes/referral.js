@@ -113,4 +113,21 @@ router.get('/:docId/data', async (req, res) => {
   }
 });
 
+// @route   POST /api/referral/:docId/send-pass
+// @desc    Send QR Pass Image to patient (Public but needs docId)
+router.post('/:docId/send-pass', async (req, res) => {
+  const { specialistUrl } = req.body;
+  const { sendQrPass } = require('../whatsapp');
+  
+  try {
+    const referral = await Referral.findOne({ docId: req.params.docId });
+    if (!referral) return res.status(404).json({ message: 'Referral not found' });
+
+    await sendQrPass(referral.patientPhone, specialistUrl);
+    res.json({ message: 'QR Pass sent to WhatsApp' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
