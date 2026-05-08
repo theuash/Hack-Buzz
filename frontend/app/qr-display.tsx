@@ -9,26 +9,7 @@ import { AnimatedBackground } from '../src/components/AnimatedBackground';
 import { ParallaxWrapper } from '../src/components/ParallaxWrapper';
 import { GlobalWebStyles, RandomFadeText, HandDrawnCircle, useRevealOnScroll } from '../src/components/SharedUI';
 
-const PrintStyles = () => (
-  <style>{`
-    @media print {
-      body { background: white !important; }
-      .app-container { display: none !important; }
-      .printable-ticket { 
-        display: flex !important; 
-        flex-direction: column; 
-        align-items: center; 
-        justify-content: center;
-        padding: 60px;
-        width: 100%;
-        height: 100vh;
-        visibility: visible !important;
-      }
-      .printable-ticket * { visibility: visible !important; }
-    }
-    .printable-ticket { display: none; }
-  `}</style>
-);
+
 
 export default function QRDisplayScreen() {
   const { docId, specialty, unlockKey } = useLocalSearchParams();
@@ -48,6 +29,95 @@ export default function QRDisplayScreen() {
       console.error(error);
     }
   };
+
+  const handlePrint = async () => {
+    if (Platform.OS !== 'web') return;
+
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(specialistUrl)}`;
+
+    // Pre-fetch image as base64 so it's embedded and doesn't need to load during print
+    let qrDataUrl = '';
+    try {
+      const resp = await fetch(qrApiUrl);
+      const blob = await resp.blob();
+      qrDataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      alert('Could not load QR code. Please check your internet connection.');
+      return;
+    }
+
+    const printWindow = window.open('', '_blank', 'width=700,height=900');
+    if (!printWindow) {
+      alert('Please allow popups to print the secure pass.');
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>MediRef Secure Pass</title>
+          <style>
+            @page { margin: 0; }
+            * { box-sizing: border-box; }
+            body {
+              margin: 0;
+              padding: 60px 40px;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              min-height: 100vh;
+              text-align: center;
+              color: #000;
+              background: #fff;
+            }
+            .header { font-size: 28px; font-weight: 900; letter-spacing: 0.05em; margin-bottom: 6px; }
+            .sub { font-size: 9px; letter-spacing: 0.25em; color: #666; margin-bottom: 36px; text-transform: uppercase; }
+            .qr-box {
+              padding: 24px;
+              border: 1.5px solid #000;
+              margin-bottom: 36px;
+              background: #fff;
+              display: inline-block;
+            }
+            .qr-box img { display: block; }
+            .label { font-size: 9px; letter-spacing: 0.2em; color: #888; margin-bottom: 6px; text-transform: uppercase; }
+            .specialty { font-size: 22px; font-weight: 800; text-transform: uppercase; margin-bottom: 24px; }
+            .divider { width: 40px; height: 2px; background: #000; margin: 0 auto 24px; }
+            .disclaimer { font-size: 9px; max-width: 360px; line-height: 1.7; color: #888; }
+          </style>
+        </head>
+        <body>
+          <div class="header">MEDIREF</div>
+          <div class="sub">Secure Clinical Transfer Pass</div>
+          <div class="qr-box">
+            <img src="${qrDataUrl}" width="320" height="320" />
+          </div>
+          <div class="label">Target Specialty</div>
+          <div class="specialty">${specialty}</div>
+          <div class="divider"></div>
+          <div class="disclaimer">
+            This QR code embeds a Zero-Knowledge decryption key. Scan with any smartphone camera to access the encrypted clinical referral. The decryption key never touches the server.
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+
+
 
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [
@@ -69,29 +139,6 @@ export default function QRDisplayScreen() {
       <div className="app-container">
         <Stack.Screen options={{ headerShown: false }} />
         <GlobalWebStyles />
-        <PrintStyles />
-        
-        <div className="printable-ticket">
-          <div style={{ fontSize: '32px', fontWeight: 'bold', fontFamily: "'Playfair Display', serif", marginBottom: '8px', color: 'black' }}>MEDIREF</div>
-          <div style={{ fontSize: '10px', fontFamily: "'Space Mono', monospace", letterSpacing: '0.2em', marginBottom: '40px', color: '#666' }}>SECURE CLINICAL TRANSFER PASS</div>
-          
-          <div style={{ padding: '30px', border: '1px solid black', marginBottom: '40px' }}>
-            <QRCode
-              value={specialistUrl}
-              size={350}
-              color="black"
-              backgroundColor="white"
-            />
-          </div>
-          
-          <div style={{ textAlign: 'center', color: 'black' }}>
-            <div style={{ fontSize: '12px', fontFamily: "'Space Mono', monospace", letterSpacing: '0.1em', marginBottom: '8px' }}>TARGET SPECIALTY</div>
-            <div style={{ fontSize: '24px', fontWeight: 'bold', textTransform: 'uppercase' }}>{specialty}</div>
-            <div style={{ fontSize: '10px', marginTop: '30px', maxWidth: '300px', lineHeight: '1.5', opacity: 0.8 }}>
-              This QR code contains a Zero-Knowledge decryption key. Scan with any smartphone camera to view encrypted clinical records locally.
-            </div>
-          </div>
-        </div>
         
         <header className="global-header fade-in">
           <div style={{ fontFamily: "'Space Mono', monospace", fontWeight: 'bold', letterSpacing: '0.2em', cursor: 'pointer' }} onClick={() => router.replace('/dashboard')}>
@@ -126,7 +173,7 @@ export default function QRDisplayScreen() {
 
             <button 
               className="editorial-btn outline" 
-              onClick={() => window.print()} 
+              onClick={handlePrint} 
               style={{ marginBottom: '16px' }}
             >
               PRINT SECURE PASS

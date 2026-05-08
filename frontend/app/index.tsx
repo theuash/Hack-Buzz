@@ -859,14 +859,14 @@ export default function LandingPage() {
               <span className="font-mono">02</span>
             </div>
             <h3 className="stat-number">AES</h3>
-            <p className="stat-label">Military-Grade Encryption</p>
+            <p className="stat-label">Advanced Encryption Standard</p>
           </div>
           <div className="stat-cell reveal-block" style={{ transitionDelay: '0.4s' }}>
             <div className="stat-icon-box">
               <span className="font-mono">03</span>
             </div>
-            <h3 className="stat-number">24 H</h3>
-            <p className="stat-label" style={{ color: '#FF0000', fontWeight: 'bold' }}>Auto-Destruct in 24 Hours</p>
+            <h3 className="stat-number">01 Week</h3>
+            <p className="stat-label" style={{ color: '#FF0000', fontWeight: 'bold' }}>Auto-Destruct in 01 Week</p>
           </div>
         </section>
 

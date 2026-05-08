@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, TextInput, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform, SafeAreaView } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
 import { THEME_COLOR, API_BASE_URL } from '../src/constants/config';
 import api from '../src/services/api';
 import { storage } from '../src/services/storage';
@@ -31,6 +31,86 @@ export default function ReferralFormScreen() {
   });
   const [mode, setMode] = useState<'referral' | 'blood_test'>('referral');
   const [bloodChecks, setBloodChecks] = useState<string[]>([]);
+  
+  // Tracking for specialty sliding pill
+  const specialtyContainerRef = useRef<HTMLDivElement>(null);
+  const specialtyRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const [pillStyle, setPillStyle] = useState({ left: 0, top: 0, width: 0, opacity: 0 });
+
+  // Tracking for urgency sliding pill
+  const urgencyRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const [urgencyPillStyle, setUrgencyPillStyle] = useState({ left: 0, top: 0, width: 0, opacity: 0 });
+
+  // Mobile layout tracking
+  const [pillLayout, setPillLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const chipLayouts = useRef<{ [key: string]: { x: number, y: number, width: number, height: number } }>({});
+
+  const [urgencyPillLayout, setUrgencyPillLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const urgencyChipLayouts = useRef<{ [key: string]: { x: number, y: number, width: number, height: number } }>({});
+
+  // Tracking for shared input focus border (Web)
+  const [focusStyle, setFocusStyle] = useState({ top: 0, left: 0, width: 0, height: 0, opacity: 0 });
+  const inputRefs = useRef<{ [key: string]: HTMLTextAreaElement | HTMLInputElement | null }>({});
+
+  const handleFocus = (key: string) => {
+    const el = inputRefs.current[key];
+    if (el) {
+      setFocusStyle({
+        top: el.offsetTop,
+        left: el.offsetLeft,
+        width: el.offsetWidth,
+        height: el.offsetHeight,
+        opacity: 1
+      });
+    }
+  };
+
+  const handleBlur = () => {
+    setFocusStyle(prev => ({ ...prev, opacity: 0 }));
+  };
+
+  const handleChipLayout = (spec: string, layout: any) => {
+    chipLayouts.current[spec] = layout;
+    if (form.specialty === spec) {
+      setPillLayout(layout);
+    }
+  };
+
+  const handleUrgencyLayout = (level: string, layout: any) => {
+    urgencyChipLayouts.current[level] = layout;
+    if (form.urgency === level) {
+      setUrgencyPillLayout(layout);
+    }
+  };
+
+  useEffect(() => {
+    if (chipLayouts.current[form.specialty]) {
+      setPillLayout(chipLayouts.current[form.specialty]);
+    }
+  }, [form.specialty]);
+
+  useEffect(() => {
+    if (urgencyChipLayouts.current[form.urgency]) {
+      setUrgencyPillLayout(urgencyChipLayouts.current[form.urgency]);
+    }
+  }, [form.urgency]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      if (form.specialty) {
+        const activeBtn = specialtyRefs.current[form.specialty];
+        if (activeBtn) {
+          setPillStyle({ left: activeBtn.offsetLeft, top: activeBtn.offsetTop, width: activeBtn.offsetWidth, opacity: 1 });
+        }
+      }
+      if (form.urgency) {
+        const activeBtn = urgencyRefs.current[form.urgency];
+        if (activeBtn) {
+          setUrgencyPillStyle({ left: activeBtn.offsetLeft, top: activeBtn.offsetTop, width: activeBtn.offsetWidth, opacity: 1 });
+        }
+      }
+    }
+  }, [form.specialty, form.urgency, mode]);
   
   const URGENCY_LEVELS = ['Routine', 'High', 'Emergency', 'Critical'];
   const BLOOD_TESTS = [
@@ -154,6 +234,42 @@ export default function ReferralFormScreen() {
     }
   };
 
+  const animatedPillStyle = useAnimatedStyle(() => {
+    return {
+      width: withTiming(pillLayout.width, { duration: 800, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+      height: withTiming(pillLayout.height, { duration: 800, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+      left: withTiming(pillLayout.x, { duration: 800, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+      top: withTiming(pillLayout.y, { duration: 800, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+    };
+  }, [pillLayout]);
+
+  const animatedUrgencyPillStyle = useAnimatedStyle(() => {
+    return {
+      width: withTiming(urgencyPillLayout.width, { duration: 1200, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+      height: withTiming(urgencyPillLayout.height, { duration: 1200, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+      left: withTiming(urgencyPillLayout.x, { duration: 1200, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+      top: withTiming(urgencyPillLayout.y, { duration: 1200, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+    };
+  }, [urgencyPillLayout]);
+
+  const animatedUrgencyTailStyle = useAnimatedStyle(() => {
+    return {
+      width: withTiming(urgencyPillLayout.width, { duration: 1500, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+      height: withTiming(urgencyPillLayout.height, { duration: 1500, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+      left: withTiming(urgencyPillLayout.x, { duration: 1500, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+      top: withTiming(urgencyPillLayout.y, { duration: 1500, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+    };
+  }, [urgencyPillLayout]);
+
+  const animatedSpecialtyTailStyle = useAnimatedStyle(() => {
+    return {
+      width: withTiming(pillLayout.width, { duration: 1000, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+      height: withTiming(pillLayout.height, { duration: 1000, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+      left: withTiming(pillLayout.x, { duration: 1000, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+      top: withTiming(pillLayout.y, { duration: 1000, easing: Easing.bezier(0.16, 1, 0.3, 1) }),
+    };
+  }, [pillLayout]);
+
   if (Platform.OS === 'web') {
     return (
       <div className="app-container">
@@ -210,31 +326,72 @@ export default function ReferralFormScreen() {
                   Only the destination specialist will receive the decryption key. The server never sees the plaintext.
                 </p>
             
-            <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>SPECIALTY</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '16px', marginBottom: '32px' }}>
-              {SPECIALTIES.map(spec => (
-                <button
-                  key={spec}
-                  onClick={() => setForm({ ...form, specialty: spec })}
-                  style={{
-                    padding: '8px 16px',
-                    fontFamily: "'Space Mono', monospace",
-                    fontSize: '10px',
-                    background: form.specialty === spec ? 'var(--fg)' : 'transparent',
-                    color: form.specialty === spec ? 'var(--bg)' : 'var(--fg)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '9999px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
+            <div 
+              ref={specialtyContainerRef} 
+              style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '16px', marginBottom: '32px' }}
+            >
+              {/* The Shadow Tail */}
+              <div 
+                style={{
+                  position: 'absolute', height: '32px', background: 'var(--fg)', borderRadius: '9999px',
+                  transition: 'all 0.9s cubic-bezier(0.16, 1, 0.3, 1)',
+                  left: `${pillStyle.left}px`, top: `${pillStyle.top}px`, width: `${pillStyle.width}px`,
+                  opacity: pillStyle.opacity * 0.3, zIndex: 0, filter: 'blur(4px)'
+                }}
+              />
+              {/* The Main Pill */}
+              <div 
+                style={{
+                  position: 'absolute', height: '32px', background: 'var(--fg)', borderRadius: '9999px',
+                  transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+                  left: `${pillStyle.left}px`, top: `${pillStyle.top}px`, width: `${pillStyle.width}px`,
+                  opacity: pillStyle.opacity, zIndex: 0
+                }}
+              />
+
+              {SPECIALTIES.map((spec, index) => (
+                <div 
+                  key={spec} 
+                  ref={el => specialtyRefs.current[spec] = el}
+                  className="fade-in" 
+                  style={{ animationDelay: `${0.2 + index * 0.05}s`, display: 'inline-block', position: 'relative', zIndex: 1 }}
                 >
-                  {spec}
-                </button>
+                  <button
+                    onClick={() => setForm({ ...form, specialty: spec })}
+                    style={{
+                      padding: '8px 16px',
+                      fontFamily: "'Space Mono', monospace",
+                      fontSize: '10px',
+                      background: 'transparent',
+                      color: form.specialty === spec ? 'var(--bg)' : 'var(--fg)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '9999px',
+                      cursor: 'pointer',
+                      transition: 'color 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+                      position: 'relative',
+                      zIndex: 2
+                    }}
+                  >
+                    {spec}
+                  </button>
+                </div>
               ))}
             </div>
             
             {form.specialty === 'Other' && (
-              <div className="fade-in">
+              <div 
+                className="fade-in" 
+                style={{ 
+                  animation: 'slideDown 0.6s var(--bezier) forwards',
+                  overflow: 'hidden'
+                }}
+              >
+                <style>{`
+                  @keyframes slideDown {
+                    from { opacity: 0; transform: translateY(-20px); max-height: 0; }
+                    to { opacity: 1; transform: translateY(0); max-height: 100px; }
+                  }
+                `}</style>
                 <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>SPECIFY SPECIALTY</label>
                 <input 
                   className="editorial-input" 
@@ -256,34 +413,90 @@ export default function ReferralFormScreen() {
             />
             
             <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>URGENCY LEVEL</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '16px', marginBottom: '32px' }}>
-              {URGENCY_LEVELS.map(level => (
-                <button
-                  key={level}
-                  onClick={() => setForm({ ...form, urgency: level })}
-                  style={{
-                    padding: '8px 16px',
-                    fontFamily: "'Space Mono', monospace",
-                    fontSize: '10px',
-                    background: form.urgency === level ? 'var(--fg)' : 'transparent',
-                    color: form.urgency === level ? 'var(--bg)' : 'var(--fg)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '9999px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
+            <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '16px', marginBottom: '32px' }}>
+              {/* The Shadow Tail */}
+              <div 
+                style={{
+                  position: 'absolute', height: '32px', background: 'var(--fg)', borderRadius: '9999px',
+                  transition: 'all 1.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                  left: `${urgencyPillStyle.left}px`, top: `${urgencyPillStyle.top}px`, 
+                  width: `${urgencyPillStyle.width}px`, opacity: urgencyPillStyle.opacity * 0.3,
+                  zIndex: 0, filter: 'blur(4px)'
+                }}
+              />
+              {/* The Main Pill */}
+              <div 
+                style={{
+                  position: 'absolute', height: '32px', background: 'var(--fg)', borderRadius: '9999px',
+                  transition: 'all 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  left: `${urgencyPillStyle.left}px`, top: `${urgencyPillStyle.top}px`, 
+                  width: `${urgencyPillStyle.width}px`, opacity: urgencyPillStyle.opacity,
+                  zIndex: 0
+                }}
+              />
+              {URGENCY_LEVELS.map((level, index) => (
+                <div 
+                  key={level} ref={el => urgencyRefs.current[level] = el}
+                  className="fade-in" style={{ animationDelay: `${0.4 + index * 0.05}s`, display: 'inline-block', position: 'relative', zIndex: 1 }}
                 >
-                  {level}
-                </button>
+                  <button
+                    onClick={() => setForm({ ...form, urgency: level })}
+                    style={{
+                      padding: '8px 16px', fontFamily: "'Space Mono', monospace", fontSize: '10px',
+                      background: 'transparent', color: form.urgency === level ? 'var(--bg)' : 'var(--fg)',
+                      border: '1px solid var(--border)', borderRadius: '9999px', cursor: 'pointer',
+                      transition: 'color 1.2s cubic-bezier(0.16, 1, 0.3, 1)', position: 'relative', zIndex: 2
+                    }}
+                  >
+                    {level}
+                  </button>
+                </div>
               ))}
             </div>
           </div>
 
-          <div className="grid-col reveal-block" style={{ transitionDelay: '0.2s' }}>
+          <div className="grid-col reveal-block" style={{ transitionDelay: '0.2s', position: 'relative' }}>
+            {/* Shared Sliding Focus Border - Shadow Tail */}
+            <div 
+              style={{
+                position: 'absolute',
+                border: '2px solid var(--fg)',
+                transition: 'all 1.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                top: `${focusStyle.top}px`,
+                left: `${focusStyle.left}px`,
+                width: `${focusStyle.width}px`,
+                height: `${focusStyle.height}px`,
+                opacity: focusStyle.opacity * 0.3,
+                pointerEvents: 'none',
+                zIndex: 4,
+                borderRadius: '4px',
+                filter: 'blur(2px)'
+              }}
+            />
+            {/* Shared Sliding Focus Border - Main */}
+            <div 
+              style={{
+                position: 'absolute',
+                border: '2px solid var(--fg)',
+                transition: 'all 1.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                top: `${focusStyle.top}px`,
+                left: `${focusStyle.left}px`,
+                width: `${focusStyle.width}px`,
+                height: `${focusStyle.height}px`,
+                opacity: focusStyle.opacity,
+                pointerEvents: 'none',
+                zIndex: 5,
+                borderRadius: '4px'
+              }}
+            />
+
             <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>CLINICAL REASON</label>
             <textarea 
+              ref={el => inputRefs.current['reason'] = el}
               className="editorial-textarea" 
               value={form.reason}
+              onFocus={() => handleFocus('reason')}
+              onBlur={handleBlur}
               onChange={(e) => setForm({ ...form, reason: e.target.value })}
               placeholder="Primary reason for referral..."
               style={{ marginTop: '16px' }}
@@ -291,8 +504,11 @@ export default function ReferralFormScreen() {
 
             <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>MEDICAL HISTORY (OPTIONAL)</label>
             <textarea 
+              ref={el => inputRefs.current['history'] = el}
               className="editorial-textarea" 
               value={form.history}
+              onFocus={() => handleFocus('history')}
+              onBlur={handleBlur}
               onChange={(e) => setForm({ ...form, history: e.target.value })}
               placeholder="Relevant past medical history..."
               style={{ marginTop: '16px', minHeight: '80px' }}
@@ -300,8 +516,11 @@ export default function ReferralFormScreen() {
 
             <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>CURRENT MEDICATIONS (OPTIONAL)</label>
             <textarea 
+              ref={el => inputRefs.current['medications'] = el}
               className="editorial-textarea" 
               value={form.medications}
+              onFocus={() => handleFocus('medications')}
+              onBlur={handleBlur}
               onChange={(e) => setForm({ ...form, medications: e.target.value })}
               placeholder="List current active medications..."
               style={{ marginTop: '16px', minHeight: '80px' }}
@@ -309,8 +528,11 @@ export default function ReferralFormScreen() {
 
             <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>ALLERGIES (OPTIONAL)</label>
             <input 
+              ref={el => inputRefs.current['allergies'] = el}
               className="editorial-input" 
               value={form.allergies}
+              onFocus={() => handleFocus('allergies')}
+              onBlur={handleBlur}
               onChange={(e) => setForm({ ...form, allergies: e.target.value })}
               placeholder="Known allergies..."
               style={{ marginTop: '16px' }}
@@ -341,32 +563,56 @@ export default function ReferralFormScreen() {
                 </p>
                 
                 <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em', display: 'block', marginBottom: '16px' }}>SELECT REQUIRED TESTS</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '32px' }}>
-                  {BLOOD_TESTS.map(test => {
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+                  {BLOOD_TESTS.map((test, index) => {
                     const isSelected = bloodChecks.includes(test);
                     return (
-                      <label key={test} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif", fontSize: '14px' }}>
-                        <div style={{
-                          width: '18px', height: '18px', border: '1px solid var(--primary)', 
-                          background: isSelected ? 'var(--primary)' : 'transparent',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
-                        }}>
-                          {isSelected && <span style={{ color: 'white', fontSize: '12px' }}>✓</span>}
-                        </div>
-                        <input 
-                          type="checkbox" 
-                          style={{ display: 'none' }}
-                          checked={isSelected}
-                          onChange={(e) => {
-                            if (e.target.checked) setBloodChecks([...bloodChecks, test]);
-                            else setBloodChecks(bloodChecks.filter(t => t !== test));
+                      <div 
+                        key={test} 
+                        className="fade-in" 
+                        style={{ animationDelay: `${0.2 + index * 0.03}s` }}
+                      >
+                        <label 
+                          onClick={() => {
+                            if (isSelected) setBloodChecks(bloodChecks.filter(t => t !== test));
+                            else setBloodChecks([...bloodChecks, test]);
                           }}
-                        />
-                        {test}
-                      </label>
+                          style={{ 
+                            display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', 
+                            fontFamily: "'Space Grotesk', sans-serif", fontSize: '13px',
+                            padding: '12px', borderRadius: '12px', border: '1px solid',
+                            borderColor: isSelected ? 'var(--primary)' : 'rgba(0,0,0,0.05)',
+                            background: isSelected ? 'rgba(27, 79, 114, 0.03)' : 'transparent',
+                            transition: 'all 0.4s var(--bezier)'
+                          }}
+                        >
+                          <div style={{
+                            width: '20px', height: '20px', borderRadius: '6px', border: '2px solid', 
+                            borderColor: isSelected ? 'var(--primary)' : '#ddd',
+                            background: isSelected ? 'var(--primary)' : 'transparent',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                            transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                            transform: isSelected ? 'scale(1.1)' : 'scale(1)',
+                            flexShrink: 0
+                          }}>
+                            {isSelected && (
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'popIn 0.3s forwards' }}>
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            )}
+                          </div>
+                          <span style={{ color: isSelected ? 'var(--primary)' : '#666', fontWeight: isSelected ? '600' : '400' }}>{test}</span>
+                        </label>
+                      </div>
                     );
                   })}
                 </div>
+                <style>{`
+                  @keyframes popIn {
+                    0% { transform: scale(0); opacity: 0; }
+                    100% { transform: scale(1); opacity: 1; }
+                  }
+                `}</style>
               </div>
               <div className="grid-col reveal-block" style={{ transitionDelay: '0.2s' }}>
                 <label style={{ fontFamily: "'Space Mono', monospace", fontSize: '10px', color: 'var(--primary)', letterSpacing: '0.2em' }}>PATIENT PHONE (SMS NOTIFICATION)</label>
@@ -403,6 +649,7 @@ export default function ReferralFormScreen() {
     );
   }
 
+
   return (
     <View style={styles.container}>
       <AnimatedBackground />
@@ -415,42 +662,65 @@ export default function ReferralFormScreen() {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-          <Animated.View entering={FadeInDown.delay(100)}>
-            <GlassCard style={styles.formSection}>
-              <Text style={styles.sectionTitle}>Patient Information</Text>
-              <Text style={styles.label}>Phone Number</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="+91 00000 00000"
-                placeholderTextColor="#AAA"
-                value={form.patientPhone}
-                onChangeText={(val) => setForm({ ...form, patientPhone: val })}
-                keyboardType="phone-pad"
-              />
-            </GlassCard>
-          </Animated.View>
+          {mode === 'referral' ? (
+            <>
+              <Animated.View entering={FadeInDown.delay(100)}>
+                <GlassCard style={styles.formSection}>
+                  <Text style={styles.sectionTitle}>Patient Information</Text>
+                  <Text style={styles.label}>Phone Number</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="+91 00000 00000"
+                    placeholderTextColor="#AAA"
+                    value={form.patientPhone}
+                    onChangeText={(val) => setForm({ ...form, patientPhone: val })}
+                    keyboardType="phone-pad"
+                  />
+                </GlassCard>
+              </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(200)}>
-            <GlassCard style={styles.formSection}>
-              <Text style={styles.sectionTitle}>Medical Specialty</Text>
-              <View style={styles.pickerContainer}>
-                {SPECIALTIES.map((spec) => (
-                  <TouchableOpacity
-                    key={spec}
-                    style={[styles.chip, form.specialty === spec && styles.chipActive]}
-                    onPress={() => setForm({ ...form, specialty: spec })}
-                  >
-                    <Text style={[styles.chipText, form.specialty === spec && styles.chipTextActive]}>{spec}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </GlassCard>
-          </Animated.View>
+              <Animated.View entering={FadeInDown.delay(200)}>
+                <GlassCard style={styles.formSection}>
+                  <Text style={styles.sectionTitle}>Medical Specialty</Text>
+                  <View style={styles.pickerContainer}>
+                    {/* Shadow Tail */}
+                    <Animated.View 
+                      style={[
+                        styles.mobilePill,
+                        animatedSpecialtyTailStyle,
+                        { opacity: 0.3, transform: [{ scale: 0.95 }] }
+                      ]}
+                    />
+                    {/* Mobile Sliding Pill */}
+                    <Animated.View 
+                      style={[
+                        styles.mobilePill,
+                        animatedPillStyle
+                      ]}
+                    />
+                    
+                    {SPECIALTIES.map((spec, index) => (
+                      <Animated.View 
+                        key={spec} 
+                        entering={FadeInDown.delay(index * 100).duration(500)}
+                        onLayout={(e) => handleChipLayout(spec, e.nativeEvent.layout)}
+                      >
+                        <TouchableOpacity
+                          style={[styles.chip, { backgroundColor: 'transparent' }]}
+                          onPress={() => setForm({ ...form, specialty: spec })}
+                        >
+                          <Text style={[styles.chipText, form.specialty === spec && { color: '#fff' }]}>{spec}</Text>
+                        </TouchableOpacity>
+                      </Animated.View>
+                    ))}
+                  </View>
+                </GlassCard>
+              </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(300)}>
-            <GlassCard style={styles.formSection}>
-              <Text style={styles.sectionTitle}>Clinical Details</Text>
-              
+              <Animated.View entering={FadeInDown.delay(300)}>
+                <GlassCard style={styles.formSection}>
+                  <Text style={styles.sectionTitle}>Clinical Details</Text>
+                  
               <Text style={styles.label}>Reason for Referral</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
@@ -490,16 +760,104 @@ export default function ReferralFormScreen() {
                 onChangeText={(val) => setForm({ ...form, allergies: val })}
               />
 
-              <Text style={styles.label}>Urgency Notes</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Critical observations"
-                placeholderTextColor="#AAA"
-                value={form.urgency}
-                onChangeText={(val) => setForm({ ...form, urgency: val })}
-              />
-            </GlassCard>
-          </Animated.View>
+                  <Text style={styles.label}>Urgency Level</Text>
+                  <View style={styles.pickerContainer}>
+                    {/* Shadow Tail */}
+                    <Animated.View 
+                      style={[
+                        styles.mobilePill,
+                        animatedUrgencyTailStyle,
+                        { opacity: 0.3, transform: [{ scale: 0.95 }] }
+                      ]}
+                    />
+                    <Animated.View 
+                      style={[
+                        styles.mobilePill,
+                        animatedUrgencyPillStyle
+                      ]}
+                    />
+                    {URGENCY_LEVELS.map((level, index) => (
+                      <Animated.View 
+                        key={level} 
+                        entering={FadeInDown.delay(index * 100 + 300).duration(500)}
+                        onLayout={(e) => handleUrgencyLayout(level, e.nativeEvent.layout)}
+                      >
+                        <TouchableOpacity
+                          style={[styles.chip, { backgroundColor: 'transparent' }]}
+                          onPress={() => setForm({ ...form, urgency: level })}
+                        >
+                          <Text style={[styles.chipText, form.urgency === level && { color: '#fff' }]}>{level}</Text>
+                        </TouchableOpacity>
+                      </Animated.View>
+                    ))}
+                  </View>
+                </GlassCard>
+              </Animated.View>
+            </>
+          ) : (
+            <>
+              <Animated.View entering={FadeInUp.delay(100)}>
+                <GlassCard style={styles.formSection}>
+                  <Text style={styles.sectionTitle}>Patient Information</Text>
+                  <Text style={styles.label}>Phone Number</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="+91 00000 00000"
+                    placeholderTextColor="#AAA"
+                    value={form.patientPhone}
+                    onChangeText={(val) => setForm({ ...form, patientPhone: val })}
+                    keyboardType="phone-pad"
+                  />
+                </GlassCard>
+              </Animated.View>
+
+              <Animated.View entering={FadeInUp.delay(200)}>
+                <GlassCard style={styles.formSection}>
+                  <Text style={styles.sectionTitle}>Required Pathology Tests</Text>
+                  <View style={styles.bloodList}>
+                    {BLOOD_TESTS.map((test, index) => {
+                      const isSelected = bloodChecks.includes(test);
+                      return (
+                        <Animated.View 
+                          key={test} 
+                          entering={FadeInDown.delay(index * 50).duration(400)}
+                        >
+                          <TouchableOpacity
+                            style={[styles.bloodItem, isSelected && styles.bloodItemActive]}
+                            onPress={() => {
+                              if (isSelected) setBloodChecks(bloodChecks.filter(t => t !== test));
+                              else setBloodChecks([...bloodChecks, test]);
+                            }}
+                          >
+                            <View style={[styles.checkbox, isSelected && styles.checkboxActive]}>
+                              {isSelected && (
+                                <View style={styles.checkmark} />
+                              )}
+                            </View>
+                            <Text style={[styles.bloodText, isSelected && styles.bloodTextActive]}>{test}</Text>
+                          </TouchableOpacity>
+                        </Animated.View>
+                      );
+                    })}
+                  </View>
+                </GlassCard>
+              </Animated.View>
+              
+              <Animated.View entering={FadeInUp.delay(300)}>
+                <GlassCard style={styles.formSection}>
+                  <Text style={styles.sectionTitle}>Clinical Reason (Optional)</Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    multiline
+                    placeholder="Why are these tests required?..."
+                    placeholderTextColor="#AAA"
+                    value={form.reason}
+                    onChangeText={(val) => setForm({ ...form, reason: val })}
+                  />
+                </GlassCard>
+              </Animated.View>
+            </>
+          )}
 
           <Animated.View entering={FadeInUp.delay(500)}>
             <TouchableOpacity
@@ -510,7 +868,9 @@ export default function ReferralFormScreen() {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.submitText}>Generate Secure Referral</Text>
+                <Text style={styles.submitText}>
+                  {mode === 'referral' ? 'Generate Secure Referral' : 'Generate Blood Order'}
+                </Text>
               )}
             </TouchableOpacity>
           </Animated.View>
@@ -611,6 +971,12 @@ const styles = StyleSheet.create({
   chipTextActive: {
     color: '#fff',
   },
+  mobilePill: {
+    position: 'absolute',
+    backgroundColor: THEME_COLOR,
+    borderRadius: 20,
+    zIndex: -1,
+  },
   submitButton: {
     backgroundColor: THEME_COLOR,
     padding: 20,
@@ -628,4 +994,51 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+  bloodList: {
+    marginTop: 10,
+  },
+  bloodItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  bloodItemActive: {
+    backgroundColor: 'rgba(27, 79, 114, 0.05)',
+    borderColor: 'rgba(27, 79, 114, 0.1)',
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  checkboxActive: {
+    borderColor: THEME_COLOR,
+    backgroundColor: THEME_COLOR,
+  },
+  checkmark: {
+    width: 10,
+    height: 6,
+    borderLeftWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: '#fff',
+    transform: [{ rotate: '-45deg' }, { translateY: -1 }],
+  },
+  bloodText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  bloodTextActive: {
+    color: THEME_COLOR,
+    fontWeight: '600',
+  }
 });
