@@ -8,9 +8,12 @@ let isClientReady = false;
 
 // Initialize WhatsApp Client
 const client = new Client({
+    authStrategy: new LocalAuth({
+        dataPath: './.wwebjs_auth'
+    }),
     puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
+        headless: true, // Set to false if you want to see the browser window for debugging
+        args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
     }
 });
 
