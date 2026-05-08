@@ -11,10 +11,12 @@ const WebStyles = () => {
       @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;0,500;1,400&family=Space+Grotesk:wght@400;500&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
       :root {
-        --bg: #f7f6f2;
-        --fg: #1c1c1c;
-        --primary: #3d7068;
-        --border: #e5e4de;
+        --bg: #F5F5DC;
+        --fg: #1a1a1a;
+        --primary: #1B4F72;
+        --accent: #B8860B;
+        --border: rgba(0,0,0,0.08);
+        --glass: rgba(255, 255, 255, 0.4);
         --bezier: cubic-bezier(0.16, 1, 0.3, 1);
       }
 
@@ -39,6 +41,8 @@ const WebStyles = () => {
       .fade-bg {
         opacity: 0;
         animation: fadeBg 3s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+        background: radial-gradient(circle at 10% 20%, rgba(27, 79, 114, 0.05) 0%, transparent 40%),
+                    radial-gradient(circle at 90% 80%, rgba(184, 134, 11, 0.05) 0%, transparent 40%);
       }
       .fade-nav {
         opacity: 0;
@@ -76,8 +80,9 @@ const WebStyles = () => {
       .drawn-underline {
         position: relative;
         display: inline-block;
-        white-space: nowrap;
+        white-space: normal;
         font-weight: 500;
+        word-break: break-word;
       }
       .drawn-underline::after {
         content: '';
@@ -86,7 +91,7 @@ const WebStyles = () => {
         left: 0;
         width: 0;
         height: 10px;
-        background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M 0 5 Q 25 8, 50 4 T 100 5" stroke="%233d7068" stroke-width="6" fill="transparent" stroke-linecap="round"/></svg>') no-repeat;
+        background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M 0 5 Q 25 8, 50 4 T 100 5" stroke="%231B4F72" stroke-width="6" fill="transparent" stroke-linecap="round"/></svg>') no-repeat;
         background-size: 100% 100%;
         transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1) 1.8s;
       }
@@ -185,6 +190,7 @@ const WebStyles = () => {
         display: flex;
         align-items: center;
         letter-spacing: -0.02em;
+        color: var(--primary);
       }
       .nav-bar-line { height: 1px; background: var(--fg); }
       .nav-link {
@@ -204,9 +210,33 @@ const WebStyles = () => {
         justify-content: center;
         align-items: center;
         text-align: center;
-        padding: 0 20px;
+        padding: 80px 20px;
         position: relative;
         border-bottom: 1px solid var(--border);
+      }
+
+      @media (max-width: 768px) {
+        .nav-bar {
+          padding: 16px 20px;
+        }
+        .nav-bar.scrolled {
+          padding: 12px 20px;
+        }
+        .nav-logo {
+          font-size: 24px;
+        }
+        .nav-logo img {
+          height: 32px !important;
+          width: 32px !important;
+        }
+        .hero-h1 {
+          font-size: 12vw;
+          margin-top: 60px;
+          line-height: 1.2;
+        }
+        .nav-link {
+          display: none; /* Hide nav links on mobile header to save space */
+        }
       }
       
       .hero-h1 {
@@ -243,30 +273,33 @@ const WebStyles = () => {
         animation: pulse 2s infinite;
       }
       @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(61, 112, 104, 0.4); }
-        70% { box-shadow: 0 0 0 6px rgba(61, 112, 104, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(61, 112, 104, 0); }
+        0% { box-shadow: 0 0 0 0 rgba(27, 79, 114, 0.4); }
+        70% { box-shadow: 0 0 0 6px rgba(27, 79, 114, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(27, 79, 114, 0); }
       }
 
       .btn-primary {
         background-color: var(--primary);
         color: white;
-        padding: 16px 32px;
+        padding: 18px 40px;
         font-family: 'Space Mono', monospace;
-        font-size: 10px;
-        letter-spacing: 0.25em;
+        font-size: 11px;
+        letter-spacing: 0.3em;
         text-transform: uppercase;
         border: none;
-        border-radius: 2px;
+        border-radius: 4px;
         cursor: pointer;
-        transition: letter-spacing 0.8s var(--bezier), transform 0.8s var(--bezier);
+        transition: all 0.8s var(--bezier);
         position: relative;
         overflow: hidden;
         display: inline-block;
         text-decoration: none;
+        box-shadow: 0 10px 30px rgba(27, 79, 114, 0.2);
       }
       .btn-primary:hover {
-        letter-spacing: 0.4em;
+        letter-spacing: 0.45em;
+        transform: translateY(-2px);
+        box-shadow: 0 15px 40px rgba(27, 79, 114, 0.3);
       }
       .btn-primary::after {
         content: '';
@@ -426,7 +459,6 @@ const WebStyles = () => {
       .zk-img-placeholder {
         width: 100%;
         height: 200px;
-        background: url('https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80') center/cover;
         margin-bottom: 20px;
         opacity: 0.6;
         mix-blend-mode: multiply;
@@ -544,16 +576,27 @@ const WebStyles = () => {
         .stats-grid { grid-template-columns: 1fr; }
         .stat-cell { border-right: none; border-bottom: 1px solid var(--border); }
         .workflow-section { grid-template-columns: 1fr; }
-        .workflow-left { border-right: none; border-bottom: 1px solid var(--border); }
+        .workflow-left { border-right: none; border-bottom: 1px solid var(--border); padding: 40px 20px; }
         .benefit-grid { grid-template-columns: 1fr; }
-        .benefit-cell { border-right: none; border-bottom: 1px solid var(--border); }
+        .benefit-cell { border-right: none; border-bottom: 1px solid var(--border); padding: 24px; }
+        
+        .use-case-section { padding: 60px 20px; }
+        .tab-switcher { flex-direction: column; gap: 8px; align-items: stretch; }
+        .tab-btn { font-size: 8px; padding: 10px 16px; width: 100%; }
+        .tab-content-card { padding-top: 40px; }
+        .ghost-icon { font-size: 120px; top: 30%; }
+        .tab-content-inner { padding: 0 20px 40px; }
+        .tab-content-inner h3 { font-size: 24px !important; line-height: 1.2; margin-bottom: 12px; }
+        .tab-content-inner h3 { font-size: 20px !important; }
+        
         .guarantee-section { grid-template-columns: 1fr; }
         .guarantee-cell { border-right: none; border-bottom: 1px solid var(--border); }
         .guarantee-cell:last-child { border-bottom: none; }
         .site-footer { grid-template-columns: 1fr; }
-        .footer-col { border-right: none; border-bottom: 1px solid var(--border); }
+        .footer-col { border-right: none; border-bottom: 1px solid var(--border); padding: 30px 20px; }
         .footer-col:last-child { border-bottom: none; }
-        .reveal-text { font-size: 2.5rem; }
+        .reveal-text { font-size: 2.2rem; line-height: 1.2; }
+        .drawn-underline { white-space: normal; }
       }
     `}</style>
   );
@@ -605,7 +648,7 @@ const HandDrawnCircle = ({ children, delay = 1.8 }: { children: React.ReactNode,
     <span ref={containerRef} className="drawn-circle-wrapper" style={{ position: 'relative', display: 'inline-block', whiteSpace: 'nowrap' }}>
       <span style={{ position: 'relative', zIndex: 2, fontWeight: 500 }}>{children}</span>
       {size.w > 0 && (
-        <svg 
+        <svg
           style={{
             position: 'absolute',
             top: '-15%',
@@ -616,13 +659,13 @@ const HandDrawnCircle = ({ children, delay = 1.8 }: { children: React.ReactNode,
             pointerEvents: 'none'
           }}
         >
-          <ellipse 
+          <ellipse
             cx="50%" cy="50%" rx="48%" ry="45%"
-            fill="transparent" 
-            stroke="#3d7068" 
-            strokeWidth="3" 
+            fill="transparent"
+            stroke="#3d7068"
+            strokeWidth="3"
             className="drawn-circle-path"
-            style={{ 
+            style={{
               transitionDelay: `${delay}s`,
               strokeDasharray: circumference,
               strokeDashoffset: circumference,
@@ -728,10 +771,16 @@ export default function LandingPage() {
   }, []);
 
   const handleStart = async () => {
+    let gpId = await storage.getGpId();
+    if (!gpId) {
+      gpId = 'GP_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+      await storage.saveGpId(gpId);
+      await storage.saveUser({ id: gpId, name: 'Local GP Session' });
+    }
+
     const token = await storage.getToken();
-    if (!token && DEFAULT_GP_ID) {
+    if (!token) {
       await storage.saveToken(DEFAULT_TOKEN || 'temp_token');
-      await storage.saveUser({ id: DEFAULT_GP_ID, name: 'Auto Login GP' });
     }
     router.replace('/dashboard');
   };
@@ -760,12 +809,21 @@ export default function LandingPage() {
       </div>
 
       <nav className={`nav-bar fade-nav ${scrolled ? 'scrolled' : ''}`}>
-        <div className="nav-logo">
+        <div className="nav-logo" style={{ gap: '16px' }}>
+          <img
+            src="/assets/logo.png"
+            style={{
+              height: '48px',
+              width: '48px',
+              mixBlendMode: 'multiply',
+              display: 'block'
+            }}
+          />
           <span>MediRef</span>
         </div>
         <div style={{ display: 'flex', gap: '24px' }}>
           <a href="#architecture" className="nav-link">Architecture</a>
-          <a onClick={handleStart} className="nav-link">Login</a>
+          <a onClick={handleStart} className="nav-link">Initialize</a>
         </div>
       </nav>
 
@@ -774,16 +832,13 @@ export default function LandingPage() {
         style={{ height: '100vh', width: '100vw', overflowY: 'auto', overflowX: 'hidden', position: 'absolute', top: 0, left: 0, zIndex: 1 }}
       >
         <section className="hero-section">
-          <div className="pulse-badge fade-content" style={{ animationDelay: '3s' }}>
-            <div className="pulse-dot" />
-            Zero-Knowledge Protocol
-          </div>
+
           <h1 className="hero-h1">
-            <RandomFadeText text="Solve the referral" baseDelay={1.5} maxDelayAdd={2.0} />
+            <RandomFadeText text="Move the Data" baseDelay={1.5} maxDelayAdd={2.0} />
             <br />
-            <RandomFadeText text="cold shoulder" baseDelay={1.5} maxDelayAdd={2.0} className="italic-span" />
+            <RandomFadeText text="Not the Documents" baseDelay={1.5} maxDelayAdd={2.0} className="italic-span" />
           </h1>
-          <p className="font-sans" style={{ maxWidth: '600px', fontSize: '18px', color: '#666', marginBottom: '40px', lineHeight: '1.6' }}>
+          <p className="font-sans" style={{ maxWidth: '600px', fontSize: '18px', color: '#16549bff', marginBottom: '40px', lineHeight: '1.6' }}>
             <RandomFadeText text="GPs and specialists today exchange referrals via fax, email, or phone — slow, insecure, and error-prone. Patients fall through the cracks. We fix that in 2 minutes with a QR code." baseDelay={2.5} maxDelayAdd={1.5} />
           </p>
           <button className="btn-primary fade-content" style={{ animationDelay: '3.5s' }} onClick={handleStart}>
@@ -811,7 +866,7 @@ export default function LandingPage() {
               <span className="font-mono">03</span>
             </div>
             <h3 className="stat-number">24 H</h3>
-            <p className="stat-label">Auto-Destruct in 24 Hours</p>
+            <p className="stat-label" style={{ color: '#FF0000', fontWeight: 'bold' }}>Auto-Destruct in 24 Hours</p>
           </div>
         </section>
 
@@ -862,7 +917,14 @@ export default function LandingPage() {
               <div className="font-mono" style={{ fontSize: '10px', color: '#666', marginBottom: '20px', letterSpacing: '0.2em' }}>
                 SYSTEM STATUS: SECURE
               </div>
-              <div className="zk-img-placeholder" />
+              <div
+                className="zk-img-placeholder"
+                style={{
+                  backgroundImage: `url(${Platform.OS === 'web' ? '/assets/image.png' : ''})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center'
+                }}
+              />
               <h4 className="font-serif" style={{ fontSize: '24px', margin: '0 0 10px' }}>
                 {activeStep === 1 ? 'Client-Side Encryption' : activeStep === 2 ? 'Key Never Leaves QR' : 'RAM-Only Processing'}
               </h4>
@@ -972,15 +1034,15 @@ export default function LandingPage() {
           </div>
           <div className="footer-col reveal-block" style={{ transitionDelay: '0.1s' }}>
             <div style={{ color: 'var(--fg)', fontWeight: 'bold', marginBottom: '8px' }}>SYSTEM ARCHITECTURE</div>
-            <div>ZERO-KNOWLEDGE ENCRYPTION<br/>CLIENT-SIDE AES-256-GCM</div>
+            <div>ZERO-KNOWLEDGE ENCRYPTION<br />CLIENT-SIDE AES-256-GCM</div>
           </div>
           <div className="footer-col reveal-block" style={{ transitionDelay: '0.2s' }}>
             <div style={{ color: 'var(--fg)', fontWeight: 'bold', marginBottom: '8px' }}>COMPLIANCE STANDARDS</div>
-            <div>MATHEMATICALLY GUARANTEED<br/>HIPAA & GDPR NATIVE</div>
+            <div>MATHEMATICALLY GUARANTEED<br />HIPAA & GDPR NATIVE</div>
           </div>
           <div className="footer-col reveal-block" style={{ transitionDelay: '0.3s' }}>
             <div style={{ color: 'var(--fg)', fontWeight: 'bold', marginBottom: '8px' }}>PRODUCTION STATUS</div>
-            <div>SYSTEM STABLE<br/>BUILD V1.0.4</div>
+            <div>SYSTEM STABLE<br />BUILD V1.0.4</div>
           </div>
         </footer>
       </div>

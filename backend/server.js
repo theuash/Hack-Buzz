@@ -38,7 +38,8 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`[${APP_NAME}] Server started on port ${PORT}`);
+  console.log(`[${APP_NAME}] Listening on all interfaces (0.0.0.0)`);
   console.log(`[${APP_NAME}] Specialist view available at ${process.env.BACKEND_URL}/referral/:docId`);
 });

@@ -7,7 +7,7 @@ const { sendConsentRequest } = require('../whatsapp');
 // @route   POST /api/referral/create
 // @desc    Create a new referral and return docId
 router.post('/create', async (req, res) => {
-  const { encryptedPayload, patientPhone, specialty, gpId } = req.body;
+  const { encryptedPayload, patientPhone, specialty, gpId, reason, history, medications, allergies, urgency } = req.body;
 
   try {
     const docId = uuidv4();
@@ -16,7 +16,12 @@ router.post('/create', async (req, res) => {
       gpId: gpId || '60d6cbbc31e14fcfb3a13943',
       patientPhone,
       encryptedPayload,
-      specialty
+      specialty,
+      reason,
+      history,
+      medications,
+      allergies,
+      urgency
     });
 
     res.status(201).json({ docId: referral.docId });
@@ -25,18 +30,19 @@ router.post('/create', async (req, res) => {
   }
 });
 
-// @route   GET /api/referral/list
-// @desc    Get all referrals for a GP
 router.get('/list', async (req, res) => {
   try {
-    // Since we removed protect, we'll return all or filter by a query param
-    const referrals = await Referral.find()
+    const { gpId } = req.query;
+    const filter = gpId ? { gpId } : {};
+
+    const referrals = await Referral.find(filter)
       .sort({ createdAt: -1 })
       .select('-encryptedPayload'); // Don't send encrypted blobs in list
     
-    // Mask patient phone for GP view
+    // Mask patient phone and normalize status for GP view
     const maskedReferrals = referrals.map(ref => ({
       ...ref._doc,
+      status: ref.consentStatus, // Map consentStatus to status for frontend
       patientPhone: ref.patientPhone.replace(/(\d{3})\d+(\d{4})/, '$1******$2')
     }));
 
@@ -65,7 +71,7 @@ router.get('/:docId/status', async (req, res) => {
 // @desc    Trigger WhatsApp consent message from specialist view (Public)
 router.post('/:docId/trigger', async (req, res) => {
   try {
-    const referral = await Referral.findOne({ docId: req.params.docId }).populate('gpId', 'name');
+    const referral = await Referral.findOne({ docId: req.params.docId });
     if (!referral) return res.status(404).json({ message: 'Referral not found' });
 
     // Only send if still pending
@@ -125,6 +131,43 @@ router.post('/:docId/send-pass', async (req, res) => {
 
     await sendQrPass(referral.patientPhone, specialistUrl);
     res.json({ message: 'QR Pass sent to WhatsApp' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   DELETE /api/referral/:docId
+// @desc    Delete a referral
+router.delete('/:docId', async (req, res) => {
+  try {
+    const referral = await Referral.findOneAndDelete({ docId: req.params.docId });
+    if (!referral) return res.status(404).json({ message: 'Referral not found' });
+    res.json({ message: 'Referral deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// @route   PUT /api/referral/:docId
+// @desc    Update basic referral info and clinical segments
+router.put('/:docId', async (req, res) => {
+  const { patientPhone, specialty, reason, history, medications, allergies, urgency } = req.body;
+  try {
+    const referral = await Referral.findOneAndUpdate(
+      { docId: req.params.docId },
+      { 
+        patientPhone, 
+        specialty, 
+        reason, 
+        history, 
+        medications, 
+        allergies, 
+        urgency 
+      },
+      { new: true }
+    );
+    if (!referral) return res.status(404).json({ message: 'Referral not found' });
+    res.json(referral);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

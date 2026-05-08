@@ -87,8 +87,14 @@ export default function ReferralFormScreen() {
 
     setLoading(true);
     try {
-      const user = await storage.getUser();
-      if (!user?.id) throw new Error('User session not found');
+      let user = await storage.getUser();
+      let gpId = user?.id || await storage.getGpId();
+      
+      if (!gpId) {
+        gpId = 'GP_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+        await storage.saveGpId(gpId);
+        await storage.saveUser({ id: gpId, name: 'Local GP Session' });
+      }
 
       const clinicalFields = {
         reason: form.reason,
@@ -111,7 +117,12 @@ export default function ReferralFormScreen() {
         encryptedPayload,
         patientPhone: form.patientPhone,
         specialty: finalSpecialty,
-        gpId: user.id,
+        gpId: gpId,
+        reason: form.reason,
+        history: form.history,
+        medications: form.medications,
+        allergies: form.allergies,
+        urgency: form.urgency,
       });
 
       const { docId } = response.data;

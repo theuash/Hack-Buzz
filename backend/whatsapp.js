@@ -12,8 +12,19 @@ const client = new Client({
         dataPath: './.wwebjs_auth'
     }),
     puppeteer: {
-        headless: true, // Set to false if you want to see the browser window for debugging
-        args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
+        ],
+    },
+    webVersionCache: {
+        type: 'local',
     }
 });
 
@@ -95,17 +106,17 @@ client.on('message', async (msg) => {
 
             if (isYes) {
                 referral.consentStatus = 'approved';
+                referral.workflowState = 'completed';
                 referral.consentTimestamp = new Date();
                 await referral.save();
-                console.log(`[MediRef] STATUS UPDATED: Referral ${referral.docId} is now APPROVED`);
-                await sendApprovalConfirmation(patientPhone);
+                console.log(`[MediRef] STATUS UPDATED: Referral ${referral.docId} is now APPROVED (Visit Confirmed)`);
+                await client.sendMessage(from, "Great! Your referral has been *CLEARED and APPROVED*. Your specialist can now access the clinical data.");
             } else {
-                referral.consentStatus = 'denied';
-                referral.invalidated = true;
-                referral.consentTimestamp = new Date();
+                referral.consentStatus = 'pending';
+                referral.workflowState = 'awaiting_visit';
                 await referral.save();
-                console.log(`[MediRef] STATUS UPDATED: Referral ${referral.docId} is now DENIED`);
-                await sendDenialConfirmation(patientPhone);
+                console.log(`[MediRef] STATUS UPDATED: Referral ${referral.docId} remains PENDING (No Visit Yet)`);
+                await client.sendMessage(from, "Understood. The referral remains *PENDING* until you have visited the specialist. Feel free to reply YES once you have completed your visit.");
             }
         } catch (error) {
             console.error(`[MediRef] CRITICAL: Error updating referral status:`, error.message);
@@ -130,7 +141,12 @@ async function sendConsentRequest(patientPhone, gpName, docId) {
         }
 
         // 1. Sanitize the number (remove everything except digits)
-        const sanitizedNumber = patientPhone.replace(/\D/g, '');
+        let sanitizedNumber = patientPhone.replace(/\D/g, '');
+
+        // Auto-prepend 91 if it's a 10-digit number (India default)
+        if (sanitizedNumber.length === 10) {
+            sanitizedNumber = '91' + sanitizedNumber;
+        }
 
         if (sanitizedNumber.length < 10) {
             console.error(`[MediRef] ERROR: Phone number ${patientPhone} is too short. Did you forget the country code?`);
@@ -146,7 +162,7 @@ async function sendConsentRequest(patientPhone, gpName, docId) {
             return;
         }
 
-        const message = `Hello from MediRef. Your GP has created a secure referral for you. \n\nReply YES to approve sharing your details with the specialist, or NO to decline.`;
+        const message = `Hello from MediRef. Your GP has created a secure referral for you. \n\n*Did you visit the specialist?* \n\nReply YES to clear and approve your referral, or NO to keep it pending.`;
 
         await client.sendMessage(chatId, message);
         console.log(`[MediRef] SUCCESS: Consent message sent to ${chatId}`);
@@ -185,7 +201,10 @@ const sendDenialConfirmation = async (patientPhone) => {
 async function sendQrPass(patientPhone, specialistUrl) {
     try {
         console.log(`[MediRef] Preparing Stark-Border QR Pass for ${patientPhone}...`);
-        const sanitizedNumber = patientPhone.replace(/\D/g, '');
+        let sanitizedNumber = patientPhone.replace(/\D/g, '');
+        if (sanitizedNumber.length === 10) {
+            sanitizedNumber = '91' + sanitizedNumber;
+        }
         const chatId = `${sanitizedNumber}@c.us`;
 
         // Generate QR code with thick 50px margin and themed background color

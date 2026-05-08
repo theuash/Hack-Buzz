@@ -8,10 +8,13 @@ export const GlobalWebStyles = () => {
       @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;0,500;1,400&family=Space+Grotesk:wght@400;500&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
       :root {
-        --bg: #f7f6f2;
-        --fg: #1c1c1c;
-        --primary: #3d7068;
-        --border: #e5e4de;
+        --bg: #F5F5DC;
+        --fg: #1a1a1a;
+        --primary: #1B4F72;
+        --accent: #B8860B;
+        --danger: #FF0000;
+        --border: rgba(0,0,0,0.06);
+        --glass: rgba(255, 255, 255, 0.45);
         --bezier: cubic-bezier(0.16, 1, 0.3, 1);
       }
 
@@ -43,9 +46,10 @@ export const GlobalWebStyles = () => {
         align-items: center;
         padding: 0 40px;
         border-bottom: 1px solid var(--border);
-        background: rgba(247, 246, 242, 0.9);
-        backdrop-filter: blur(10px);
+        background: rgba(245, 245, 220, 0.85);
+        backdrop-filter: blur(15px);
         z-index: 100;
+        box-shadow: 0 4px 30px rgba(0,0,0,0.02);
       }
 
       /* Reusable Grid Structures */
@@ -87,6 +91,7 @@ export const GlobalWebStyles = () => {
       }
       .editorial-input:focus {
         border-bottom-color: var(--primary);
+        box-shadow: 0 4px 10px rgba(27, 79, 114, 0.05);
       }
       .editorial-textarea {
         width: 100%;
@@ -111,20 +116,22 @@ export const GlobalWebStyles = () => {
         width: 100%;
         background-color: var(--primary);
         color: white;
-        padding: 20px;
+        padding: 24px;
         font-family: 'Space Mono', monospace;
-        font-size: 12px;
-        letter-spacing: 0.2em;
+        font-size: 11px;
+        letter-spacing: 0.35em;
         text-transform: uppercase;
         border: none;
         cursor: pointer;
-        box-shadow: 4px 4px 0px rgba(61, 112, 104, 0.3);
-        transition: transform 0.3s var(--bezier), box-shadow 0.3s var(--bezier);
+        transition: all 0.8s var(--bezier);
         text-align: center;
+        box-shadow: 0 10px 40px rgba(27, 79, 114, 0.25);
+        border-radius: 4px;
       }
       .editorial-btn:hover {
-        transform: translate(-2px, -2px);
-        box-shadow: 6px 6px 0px rgba(61, 112, 104, 0.3);
+        letter-spacing: 0.5em;
+        transform: translateY(-3px);
+        box-shadow: 0 15px 50px rgba(27, 79, 114, 0.35);
       }
       .editorial-btn.outline {
         background-color: transparent;
