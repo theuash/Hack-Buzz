@@ -3,245 +3,345 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediRef — Secure Specialist Portal</title>
+    <title>MediRef — Specialist Portal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
-            --primary: #0F9B8E;
-            --primary-light: #34E0D0;
-            --bg: #0A0F12;
-            --glass: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --fg: #1A1A1A;
+            --bg: #FAFAF8;
+            --primary: #1B4F72;
+            --primary-light: rgba(27, 79, 114, 0.08);
+            --border: rgba(0, 0, 0, 0.08);
+            --border-strong: rgba(0, 0, 0, 0.15);
+            --muted: #888;
+            --bezier: cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        * {
-            box-sizing: border-box;
-            -webkit-font-smoothing: antialiased;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
 
         body {
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Space Grotesk', sans-serif;
             background-color: var(--bg);
-            color: #E0E6ED;
-            margin: 0;
+            color: var(--fg);
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow-x: hidden;
         }
 
-        /* Animated Background Blobs */
-        .blob {
+        /* Subtle noise texture overlay */
+        body::before {
+            content: '';
             position: fixed;
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
-            filter: blur(80px);
-            opacity: 0.15;
-            z-index: -1;
-            border-radius: 50%;
-            animation: move 20s infinite alternate;
-        }
-        .blob-1 { top: -100px; left: -100px; }
-        .blob-2 { bottom: -100px; right: -100px; background: radial-gradient(circle, var(--primary-light) 0%, transparent 70%); }
-        
-        @keyframes move {
-            from { transform: translate(0, 0) scale(1); }
-            to { transform: translate(100px, 50px) scale(1.2); }
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
         }
 
-        .container {
-            max-width: 700px;
-            width: 95%;
-            padding: 40px;
-            background: rgba(255, 255, 255, 0.02);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 32px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            text-align: center;
-            animation: fadeIn 0.8s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        /* ── HEADER ── */
         header {
-            margin-bottom: 40px;
-        }
-
-        .logo-tag {
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            color: var(--primary-light);
-            font-weight: 800;
-            margin-bottom: 8px;
-            display: block;
-        }
-
-        h1 {
-            font-size: 36px;
-            font-weight: 800;
-            margin: 0;
-            letter-spacing: -1px;
-            background: linear-gradient(to right, #fff, #999);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .status-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            margin: 40px 0;
+            justify-content: space-between;
+            padding: 0 48px;
+            height: 64px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(250, 250, 248, 0.85);
+            backdrop-filter: blur(12px);
         }
 
-        .spinner {
-            width: 60px;
-            height: 60px;
-            border: 3px solid rgba(15, 155, 142, 0.1);
-            border-top: 3px solid var(--primary-light);
-            border-radius: 50%;
-            animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        .header-logo {
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 0.15em;
+            color: var(--fg);
+        }
+
+        .header-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            color: var(--primary);
+            text-transform: uppercase;
+        }
+
+        /* ── HERO ── */
+        .hero {
+            padding: 160px 48px 80px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .eyebrow {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.25em;
+            color: var(--primary);
+            text-transform: uppercase;
             margin-bottom: 20px;
         }
 
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(48px, 7vw, 80px);
+            line-height: 1.05;
+            letter-spacing: -2px;
+            color: var(--fg);
+            margin-bottom: 24px;
+        }
 
-        .status-text {
-            color: #A0AEC0;
+        .hero-sub {
             font-size: 16px;
-            max-width: 300px;
-            line-height: 1.6;
+            color: var(--muted);
+            line-height: 1.7;
+            max-width: 480px;
         }
 
-        .referral-card {
-            display: none;
-            text-align: left;
-            animation: slideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .section-header {
+        /* ── STATUS ── */
+        .status-row {
             display: flex;
             align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--glass-border);
+            gap: 12px;
+            margin-top: 40px;
         }
 
-        .section-header h2 {
-            margin: 0;
-            font-size: 22px;
-            font-weight: 600;
-            margin-left: 12px;
+        .pulse-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--primary);
+            animation: pulse 2s infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+
+        .status-text {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 0.05em;
+        }
+
+        /* ── SPINNER ── */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-strong);
+            border-top-color: var(--fg);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── CONTENT GRID ── */
+        .content {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 80px 48px 120px;
+            display: none;
+            animation: fadeUp 0.8s var(--bezier) forwards;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.25em;
+            color: var(--primary);
+            text-transform: uppercase;
+            margin-bottom: 40px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
         }
 
         .data-grid {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            margin-bottom: 1px;
         }
+
+        .data-grid.full { grid-template-columns: 1fr; }
 
         .field-box {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--glass-border);
-            padding: 20px;
-            border-radius: 20px;
-            transition: all 0.3s ease;
+            background: var(--bg);
+            padding: 32px;
+            transition: background 0.3s var(--bezier);
         }
 
-        .field-box:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: var(--primary-light);
-        }
+        .field-box:hover { background: var(--primary-light); }
 
         .field-label {
-            display: flex;
-            align-items: center;
-            font-size: 12px;
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
             font-weight: 700;
             text-transform: uppercase;
-            color: var(--primary-light);
-            margin-bottom: 10px;
-            letter-spacing: 1px;
-        }
-
-        .field-label i {
-            margin-right: 8px;
-            width: 14px;
+            letter-spacing: 0.2em;
+            color: var(--muted);
+            margin-bottom: 12px;
         }
 
         .field-value {
             font-size: 17px;
-            line-height: 1.6;
-            color: #F7FAFC;
+            line-height: 1.65;
+            color: var(--fg);
+            font-weight: 400;
         }
 
+        .urgency-badge {
+            display: inline-block;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 6px 16px;
+            border: 1px solid var(--fg);
+            color: var(--fg);
+        }
+
+        .urgency-badge.critical {
+            background: var(--fg);
+            color: var(--bg);
+        }
+
+        .test-tag {
+            display: inline-block;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 14px;
+            border: 1px solid var(--border-strong);
+            margin: 4px 4px 0 0;
+            transition: all 0.3s var(--bezier);
+        }
+
+        .test-tag:hover {
+            background: var(--fg);
+            color: var(--bg);
+            border-color: var(--fg);
+        }
+
+        /* ── ERROR ── */
         .error-view {
             display: none;
-            color: #F56565;
+            padding: 160px 48px 80px;
+            animation: fadeUp 0.8s var(--bezier) forwards;
         }
 
-        .error-icon {
-            font-size: 48px;
+        .error-eyebrow {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.25em;
+            color: #C0392B;
+            text-transform: uppercase;
             margin-bottom: 20px;
+        }
+
+        .error-view h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 48px;
+            line-height: 1.1;
+            letter-spacing: -1px;
+            color: var(--fg);
+            margin-bottom: 16px;
+        }
+
+        .error-view p {
+            font-size: 16px;
+            color: var(--muted);
+            line-height: 1.7;
+            max-width: 400px;
+        }
+
+        /* ── FOOTER ── */
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 48px;
+            border-top: 1px solid var(--border);
+            background: rgba(250, 250, 248, 0.85);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 48px;
+        }
+
+        .footer-text {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+        }
+
+        @media (max-width: 700px) {
+            header, footer { padding: 0 20px; }
+            .hero, .content, .error-view { padding-left: 20px; padding-right: 20px; }
+            h1 { font-size: 40px; }
+            .data-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-<div class="blob blob-1"></div>
-<div class="blob blob-2"></div>
+<header>
+    <div class="header-logo">MEDIREF</div>
+    <div class="header-badge">Specialist Portal</div>
+</header>
 
-<div class="container">
-    <header>
-        <span class="logo-tag">Secure Portal</span>
-        <h1 id="app-name">MediRef</h1>
-    </header>
-
-    <div id="waiting-view" class="status-container">
-        <div class="spinner"></div>
-        <p class="status-text">Verifying security keys and waiting for patient consent via WhatsApp...</p>
-    </div>
-
-    <div id="data-view" class="referral-card">
-        <div class="section-header">
-            <i data-lucide="shield-check" style="color: var(--primary-light)"></i>
-            <h2>Clinical Referral Summary</h2>
+<!-- HERO / WAITING STATE -->
+<div id="waiting-view">
+    <div class="hero">
+        <div class="eyebrow">Zero-Knowledge Decryption</div>
+        <h1>Secure<br>Clinical Brief</h1>
+        <p class="hero-sub">Verifying cryptographic keys and retrieving the encrypted referral. Patient data is decrypted locally — the server never sees plaintext records.</p>
+        <div class="status-row">
+            <div class="spinner"></div>
+            <div class="status-text">Awaiting decryption...</div>
         </div>
-        <div id="clinical-data" class="data-grid">
-            <!-- Populated by JS -->
-        </div>
-    </div>
-
-    <div id="error-view" class="error-view">
-        <i data-lucide="alert-triangle" class="error-icon"></i>
-        <h2>Access Denied</h2>
-        <p>The patient has declined this referral request or the link has expired.</p>
     </div>
 </div>
 
+<!-- DATA VIEW -->
+<div id="data-view" class="content">
+    <div class="section-label">Clinical Referral Summary — Decrypted Locally</div>
+    <div id="clinical-data"></div>
+</div>
+
+<!-- ERROR VIEW -->
+<div id="error-view" class="error-view">
+    <div class="error-eyebrow">Access Denied</div>
+    <h2>Referral<br>Unavailable</h2>
+    <p>The patient has declined this referral, the link has expired, or the decryption key is invalid. Please contact the referring GP directly.</p>
+</div>
+
+<footer>
+    <div class="footer-text">MEDIREF · Zero-Knowledge Medical Referral System</div>
+    <div class="footer-text">AES-256 · End-to-End Encrypted</div>
+</footer>
+
 <script>
-    const SALT = "MEDIREF_SECURE_V1_2024";
     const docId = window.location.pathname.split('/').pop();
-    
-    // Initialize Lucide icons
-    lucide.createIcons();
 
     async function triggerConsent() {
         try {
@@ -253,14 +353,8 @@
         try {
             const res = await fetch(`/api/referral/${docId}/status`);
             const status = await res.json();
-
-            if (status.consentStatus === 'approved') {
-                fetchData();
-                return true; 
-            } else if (status.consentStatus === 'denied' || status.invalidated) {
-                showView('error-view');
-                return true;
-            }
+            if (status.consentStatus === 'approved') { fetchData(); return true; }
+            else if (status.consentStatus === 'denied' || status.invalidated) { showView('error-view'); return true; }
         } catch (e) { console.log("Poll failed", e); }
         return false;
     }
@@ -268,26 +362,15 @@
     async function fetchData() {
         try {
             const res = await fetch(`/api/referral/${docId}/data`);
-            if (!res.ok) {
-                throw new Error("Access denied or referral invalidated.");
-            }
+            if (!res.ok) throw new Error("Access denied or referral invalidated.");
             const data = await res.json();
 
             if (data.encryptedPayload) {
-                // ZERO KNOWLEDGE DECRYPTION: Read the key from the URL fragment
                 const unlockKey = window.location.hash.substring(1);
-                
-                if (!unlockKey) {
-                    throw new Error("No unlock key found in URL fragment.");
-                }
-
+                if (!unlockKey) throw new Error("No unlock key found in URL fragment.");
                 const bytes = CryptoJS.AES.decrypt(data.encryptedPayload, unlockKey);
                 const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
-                
-                if (!decryptedText) {
-                    throw new Error("Decryption failed. Invalid key or corrupted data.");
-                }
-
+                if (!decryptedText) throw new Error("Decryption failed. Invalid key or corrupted data.");
                 const decryptedData = JSON.parse(decryptedText);
                 displayData(decryptedData, data.specialty);
                 showView('data-view');
@@ -300,53 +383,67 @@
 
     function displayData(data, specialty) {
         const container = document.getElementById('clinical-data');
-        
-        let fields = [
-            { icon: 'stethoscope', label: 'Specialty Context', value: specialty }
-        ];
 
-        if (data.bloodChecks && data.bloodChecks.length > 0) {
-            fields.push({ 
-                icon: 'test-tube-2', 
-                label: 'Required Blood Tests', 
-                value: `<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
-                    ${data.bloodChecks.map(t => `<span style="background: rgba(15, 155, 142, 0.15); color: var(--primary-light); padding: 4px 12px; border-radius: 99px; font-size: 13px;">${t}</span>`).join('')}
-                </div>` 
-            });
+        const urgencyClass = (data.urgency || '').toLowerCase() === 'critical' ? 'critical' : '';
+
+        let html = `<div class="data-grid">`;
+
+        // Specialty
+        html += field('REFERRED SPECIALTY', `<span style="font-size:20px;font-weight:700;">${specialty || '—'}</span>`);
+
+        // Urgency
+        if (data.urgency) {
+            html += field('URGENCY LEVEL', `<span class="urgency-badge ${urgencyClass}">${data.urgency}</span>`);
         }
 
-        fields.push({ icon: 'clipboard-list', label: 'Reason / Notes', value: data.reason || 'No clinical notes provided.' });
-        
-        if (data.urgency) fields.push({ icon: 'alert-circle', label: 'Urgency Level', value: data.urgency });
-        if (data.history) fields.push({ icon: 'history', label: 'Medical History', value: data.history });
-        if (data.medications) fields.push({ icon: 'pill', label: 'Current Medications', value: data.medications });
-        if (data.allergies) fields.push({ icon: 'thermometer-snowflake', label: 'Known Allergies', value: data.allergies });
+        html += `</div>`;
 
-        container.innerHTML = fields.map(f => `
-            <div class="field-box">
-                <div class="field-label">
-                    <i data-lucide="${f.icon}"></i>
-                    ${f.label}
-                </div>
-                <div class="field-value">${f.value}</div>
-            </div>
-        `).join('');
-        
-        lucide.createIcons();
+        // Reason
+        if (data.reason) {
+            html += `<div class="data-grid full" style="margin-top:1px;">`;
+            html += field('CLINICAL REASON / NOTES', escVal(data.reason));
+            html += `</div>`;
+        }
+
+        // Blood tests
+        if (data.bloodChecks && data.bloodChecks.length > 0) {
+            html += `<div class="data-grid full" style="margin-top:1px;">`;
+            html += field('REQUIRED PATHOLOGY TESTS', data.bloodChecks.map(t => `<span class="test-tag">${t}</span>`).join(''));
+            html += `</div>`;
+        }
+
+        // History + Medications
+        if (data.history || data.medications) {
+            html += `<div class="data-grid" style="margin-top:1px;">`;
+            if (data.history) html += field('MEDICAL HISTORY', escVal(data.history));
+            if (data.medications) html += field('CURRENT MEDICATIONS', escVal(data.medications));
+            html += `</div>`;
+        }
+
+        // Allergies
+        if (data.allergies) {
+            html += `<div class="data-grid full" style="margin-top:1px;">`;
+            html += field('KNOWN ALLERGIES', `<span style="font-weight:600;color:#C0392B;">${escVal(data.allergies)}</span>`);
+            html += `</div>`;
+        }
+
+        container.innerHTML = html;
+    }
+
+    function field(label, value) {
+        return `<div class="field-box"><div class="field-label">${label}</div><div class="field-value">${value}</div></div>`;
+    }
+
+    function escVal(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
     function showView(id) {
         document.getElementById('waiting-view').style.display = 'none';
-        document.getElementById('data-view').style.display = 'none';
-        document.getElementById('error-view').style.display = 'none';
-        document.getElementById(id).style.display = id === 'data-view' ? 'block' : 'flex';
-        
-        if (id === 'error-view') {
-            document.querySelector('.container').style.borderColor = '#F56565';
-        }
+        document.getElementById('data-view').style.display = id === 'data-view' ? 'block' : 'none';
+        document.getElementById('error-view').style.display = id === 'error-view' ? 'block' : 'none';
     }
 
-    // Start
     triggerConsent();
     const interval = setInterval(async () => {
         const stop = await checkStatus();
