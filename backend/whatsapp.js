@@ -8,19 +8,16 @@ let isClientReady = false;
 
 // Initialize WhatsApp Client
 const client = new Client({
-    authStrategy: new LocalAuth({
-        dataPath: './.wwebjs_auth'
-    }),
     puppeteer: {
-        headless: true, // Set to false if you want to see the browser window for debugging
-        args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
     }
 });
 
 // Authentication Handler (QR or Phone Pairing)
 client.on('qr', async (qr) => {
     const phoneNumber = process.env.CLIENT_WHATSAPP_NUMBER;
-    
+
     if (phoneNumber) {
         console.log(`[${APP_NAME}] Detected pairing number: ${phoneNumber}. Requesting code...`);
         try {
@@ -75,9 +72,9 @@ client.on('message', async (msg) => {
             const last10 = patientPhone.slice(-10);
             console.log(`[MediRef] SEARCHING: Pending referrals matching phone segment "${last10}"...`);
 
-            let referral = await Referral.findOne({ 
+            let referral = await Referral.findOne({
                 patientPhone: { $regex: last10 },
-                consentStatus: 'pending' 
+                consentStatus: 'pending'
             }).sort({ createdAt: -1 });
 
             if (!referral) {
@@ -123,7 +120,7 @@ client.initialize();
 async function sendConsentRequest(patientPhone, gpName, docId) {
     try {
         console.log(`[MediRef] Starting send process for ${patientPhone}...`);
-    
+
         if (!isClientReady) {
             console.error(`[MediRef] ERROR: Cannot send message. WhatsApp is still connecting. Please wait for the "Ready" message.`);
             return;
@@ -131,7 +128,7 @@ async function sendConsentRequest(patientPhone, gpName, docId) {
 
         // 1. Sanitize the number (remove everything except digits)
         const sanitizedNumber = patientPhone.replace(/\D/g, '');
-        
+
         if (sanitizedNumber.length < 10) {
             console.error(`[MediRef] ERROR: Phone number ${patientPhone} is too short. Did you forget the country code?`);
             return;
@@ -147,7 +144,7 @@ async function sendConsentRequest(patientPhone, gpName, docId) {
         }
 
         const message = `Hello from MediRef. Your GP has created a secure referral for you. \n\nReply YES to approve sharing your details with the specialist, or NO to decline.`;
-        
+
         await client.sendMessage(chatId, message);
         console.log(`[MediRef] SUCCESS: Consent message sent to ${chatId}`);
     } catch (error) {
@@ -187,17 +184,17 @@ async function sendQrPass(patientPhone, specialistUrl) {
         console.log(`[MediRef] Preparing Stark-Border QR Pass for ${patientPhone}...`);
         const sanitizedNumber = patientPhone.replace(/\D/g, '');
         const chatId = `${sanitizedNumber}@c.us`;
-        
+
         // Generate QR code with thick 50px margin and themed background color
         const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=800x800&margin=50&bgcolor=f7f6f2&data=${encodeURIComponent(specialistUrl)}`;
-        
+
         console.log(`[MediRef] Fetching high-res QR pass...`);
         const response = await axios.get(qrApiUrl, { responseType: 'arraybuffer' });
         const base64 = Buffer.from(response.data, 'binary').toString('base64');
         const media = new MessageMedia('image/png', base64, 'mediref-pass.png');
 
-        await client.sendMessage(chatId, media, { 
-            caption: `*MEDIREF SECURE PASS*\n\n*Specialty:* ${specialistUrl.split('referral/')[1].split('#')[0].substring(0,8)}... \n*Instruction:* Show this image to your specialist. \n\n_Zero-Knowledge Encrypted_` 
+        await client.sendMessage(chatId, media, {
+            caption: `*MEDIREF SECURE PASS*\n\n*Specialty:* ${specialistUrl.split('referral/')[1].split('#')[0].substring(0, 8)}... \n*Instruction:* Show this image to your specialist. \n\n_Zero-Knowledge Encrypted_`
         });
         console.log(`[MediRef] SUCCESS: Stark-Border QR Pass sent to ${chatId}`);
     } catch (error) {
