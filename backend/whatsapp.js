@@ -17,10 +17,28 @@ const client = new Client({
     }
 });
 
-// Show QR Code in terminal for authentication
-client.on('qr', (qr) => {
-    console.log(`[${APP_NAME}] Scan this QR code with your WhatsApp to login:`);
-    qrcode.generate(qr, { small: true });
+// Authentication Handler (QR or Phone Pairing)
+client.on('qr', async (qr) => {
+    const phoneNumber = process.env.CLIENT_WHATSAPP_NUMBER;
+    
+    if (phoneNumber) {
+        console.log(`[${APP_NAME}] Detected pairing number: ${phoneNumber}. Requesting code...`);
+        try {
+            // Request the 8-character pairing code
+            const code = await client.requestPairingCode(phoneNumber.replace(/\D/g, ''));
+            console.log(`\n--------------------------------------------------`);
+            console.log(`[${APP_NAME}] YOUR WHATSAPP PAIRING CODE IS: ${code}`);
+            console.log(`[${APP_NAME}] Link this in: Settings > Linked Devices > Link with phone number`);
+            console.log(`--------------------------------------------------\n`);
+        } catch (err) {
+            console.error(`[${APP_NAME}] Pairing code request failed:`, err.message);
+            console.log(`[${APP_NAME}] Falling back to QR code...`);
+            qrcode.generate(qr, { small: true });
+        }
+    } else {
+        console.log(`[${APP_NAME}] Scan this QR code with your WhatsApp to login:`);
+        qrcode.generate(qr, { small: true });
+    }
 });
 
 client.on('ready', () => {
